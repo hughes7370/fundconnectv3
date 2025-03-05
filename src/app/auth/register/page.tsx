@@ -35,6 +35,11 @@ export default function Register() {
       setRole(roleParam);
     }
   }, [searchParams]);
+  
+  // Debug log for form rendering
+  useEffect(() => {
+    console.log('Rendering registration form with submit button');
+  }, []);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,130 +190,132 @@ export default function Register() {
           </button>
         </div>
         
-        <form className="mt-8 space-y-6" onSubmit={handleRegister}>
-          <input type="hidden" name="remember" defaultValue="true" />
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="name" className="sr-only">
-                Full Name
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                autoComplete="name"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
-                placeholder="Full Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="email-address" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            
-            {role === 'agent' && (
+        <div className="mt-8">
+          <form onSubmit={handleRegister}>
+            <input type="hidden" name="remember" defaultValue="true" />
+            <div className="rounded-md shadow-sm -space-y-px mb-6">
               <div>
-                <label htmlFor="firm" className="sr-only">
-                  Firm/Organization
+                <label htmlFor="name" className="sr-only">
+                  Full Name
                 </label>
                 <input
-                  id="firm"
-                  name="firm"
+                  id="name"
+                  name="name"
                   type="text"
-                  autoComplete="organization"
+                  autoComplete="name"
+                  required
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
+                  placeholder="Full Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="email-address" className="sr-only">
+                  Email address
+                </label>
+                <input
+                  id="email-address"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
                   required
                   className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
-                  placeholder="Firm/Organization"
-                  value={firm}
-                  onChange={(e) => setFirm(e.target.value)}
+                  placeholder="Email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
-            )}
-            
-            {role === 'investor' && (
+              
               <div>
-                <label htmlFor="invitation-code" className="sr-only">
-                  Invitation Code (if you have one)
+                <label htmlFor="password" className="sr-only">
+                  Password
                 </label>
                 <input
-                  id="invitation-code"
-                  name="invitation-code"
-                  type="text"
-                  autoComplete="off"
-                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
-                  placeholder="Invitation Code (if you have one)"
-                  value={invitationCode}
-                  onChange={(e) => setInvitationCode(e.target.value)}
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
+              
+              {role === 'agent' && (
+                <div>
+                  <label htmlFor="firm" className="sr-only">
+                    Firm/Organization
+                  </label>
+                  <input
+                    id="firm"
+                    name="firm"
+                    type="text"
+                    autoComplete="organization"
+                    required
+                    className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
+                    placeholder="Firm/Organization"
+                    value={firm}
+                    onChange={(e) => setFirm(e.target.value)}
+                  />
+                </div>
+              )}
+              
+              {role === 'investor' && (
+                <div>
+                  <label htmlFor="invitation-code" className="sr-only">
+                    Invitation Code (if you have one)
+                  </label>
+                  <input
+                    id="invitation-code"
+                    name="invitation-code"
+                    type="text"
+                    autoComplete="off"
+                    className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
+                    placeholder="Invitation Code (if you have one)"
+                    value={invitationCode}
+                    onChange={(e) => setInvitationCode(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+
+            {error && (
+              <div className="rounded-md bg-red-50 p-4 mb-6">
+                <div className="flex">
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-red-800">{error}</h3>
+                  </div>
+                </div>
+              </div>
             )}
-          </div>
 
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="flex">
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">{error}</h3>
+            {role === 'investor' && !invitationCode && (
+              <div className="rounded-md bg-yellow-50 p-4 mb-6">
+                <div className="flex">
+                  <div className="ml-3">
+                    <p className="text-sm text-yellow-700">
+                      Without an invitation code, your registration will require admin approval before you can access the platform.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {role === 'investor' && !invitationCode && (
-            <div className="rounded-md bg-yellow-50 p-4">
-              <div className="flex">
-                <div className="ml-3">
-                  <p className="text-sm text-yellow-700">
-                    Without an invitation code, your registration will require admin approval before you can access the platform.
-                  </p>
-                </div>
-              </div>
+            <div className="mt-6">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 px-4 border border-transparent text-base font-medium rounded-md bg-blue-600 hover:bg-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-md"
+              >
+                {loading ? 'Creating account...' : 'Create account'}
+              </button>
             </div>
-          )}
-
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-            >
-              {loading ? 'Creating account...' : 'Create account'}
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
         
         <div className="mt-6">
           <p className="mt-2 text-center text-xs text-gray-600">

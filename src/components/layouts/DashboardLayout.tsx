@@ -48,14 +48,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   // Define navigation based on user role
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', current: pathname === '/dashboard' },
-    { name: 'Profile', href: '/dashboard/profile', current: pathname === '/dashboard/profile' },
   ];
 
   // Add role-specific navigation items
   if (userRole === 'agent') {
     navigation.push(
       { name: 'My Funds', href: '/agent/funds', current: pathname.startsWith('/agent/funds') },
-      { name: 'Upload Fund', href: '/agent/funds/new', current: pathname === '/agent/funds/new' },
       { name: 'My Investors', href: '/agent/investors', current: pathname.startsWith('/agent/investors') },
       { name: 'Commissions', href: '/agent/commissions', current: pathname === '/agent/commissions' },
     );
