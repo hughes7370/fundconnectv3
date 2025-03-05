@@ -1,78 +1,3 @@
-# Fund Connect
-
-Fund Connect is a platform that connects fund placement agents with investors (LPs) to streamline the deal-sharing process, replacing manual database filtering and overwhelming email communications.
-
-## Features
-
-- **Agents**: Upload deals via a simple web form, introduce investors, and earn commissions on capital raised or investor interest.
-- **Investors**: Register via agent referral (or request access), filter deals using Pitchbook-style tools, review fund details, express interest, and set alerts for matching funds.
-- **Administrators**: Approve investor requests, manage users, and monitor platform activity.
-
-## Tech Stack
-
-- **Frontend**: Next.js (React), Tailwind CSS
-- **Backend**: Supabase (PostgreSQL, Authentication, Storage, Real-time features)
-- **Hosting**: Vercel
-
-## Setup Instructions
-
-### Prerequisites
-
-- Node.js (v16+)
-- npm or yarn
-- Git
-- Supabase account
-
-### Local Development Setup
-
-1. **Clone the repository**
-
-```bash
-git clone <repository-url>
-cd fundconnect
-```
-
-2. **Install dependencies**
-
-```bash
-npm install
-# or
-yarn install
-```
-
-3. **Set up Supabase**
-
-- Create a new Supabase project at [supabase.com](https://supabase.com)
-- Create the database tables as specified in the schema below
-- Enable auth providers (email/password)
-- Set up storage buckets for documents
-- Configure Row Level Security (RLS) policies
-
-4. **Configure environment variables**
-
-Create a `.env.local` file in the project root with the following variables:
-
-```
-NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
-```
-
-5. **Run the development server**
-
-```bash
-npm run dev
-# or
-yarn dev
-```
-
-Navigate to [http://localhost:3000](http://localhost:3000) to see the application.
-
-### Database Schema Setup
-
-Execute the following SQL in your Supabase SQL editor to set up the required tables:
-
-```sql
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -168,13 +93,7 @@ CREATE TABLE IF NOT EXISTS saved_searches (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   alerts_enabled BOOLEAN DEFAULT FALSE
 );
-```
 
-### Setting up Row Level Security
-
-Add RLS policies to secure your database:
-
-```sql
 -- Enable Row Level Security
 ALTER TABLE agents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE investors ENABLE ROW LEVEL SECURITY;
@@ -190,9 +109,23 @@ ALTER TABLE saved_searches ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Agents can view their own data" ON agents
   FOR SELECT USING (auth.uid() = user_id);
 
+CREATE POLICY "Admins can view all agents" ON agents
+  FOR SELECT USING (auth.jwt() ->> 'role' = 'admin');
+
+CREATE POLICY "Investors can view agent info" ON agents
+  FOR SELECT USING (EXISTS (
+    SELECT 1 FROM investors WHERE user_id = auth.uid() AND introducing_agent_id = agents.user_id
+  ));
+
 -- Investors RLS
 CREATE POLICY "Investors can view their own data" ON investors
   FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Admins can view all investors" ON investors
+  FOR SELECT USING (auth.jwt() ->> 'role' = 'admin');
+
+CREATE POLICY "Agents can view their investors" ON investors
+  FOR SELECT USING (introducing_agent_id = auth.uid());
 
 -- Funds RLS
 CREATE POLICY "Funds are viewable by authenticated users" ON funds
@@ -207,27 +140,96 @@ CREATE POLICY "Agents can update their own funds" ON funds
 CREATE POLICY "Agents can delete their own funds" ON funds
   FOR DELETE USING (auth.uid() = uploaded_by_agent_id);
 
--- Similar policies for other tables...
-```
+-- Fund Documents RLS
+CREATE POLICY "Fund documents are viewable by authenticated users" ON fund_documents
+  FOR SELECT USING (auth.role() = 'authenticated');
 
-### Setting up Storage Buckets
+CREATE POLICY "Agents can insert documents for their own funds" ON fund_documents
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM funds 
+      WHERE id = fund_documents.fund_id AND uploaded_by_agent_id = auth.uid()
+    )
+  );
 
-1. Create a `fund-documents` bucket in Supabase Storage
-2. Configure RLS policies for the bucket
+CREATE POLICY "Agents can update documents for their own funds" ON fund_documents
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM funds 
+      WHERE id = fund_documents.fund_id AND uploaded_by_agent_id = auth.uid()
+    )
+  );
 
-## Deployment
+CREATE POLICY "Agents can delete documents for their own funds" ON fund_documents
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM funds 
+      WHERE id = fund_documents.fund_id AND uploaded_by_agent_id = auth.uid()
+    )
+  );
 
-### Vercel Deployment
+-- Interests RLS
+CREATE POLICY "Investors can view their own interests" ON interests
+  FOR SELECT USING (investor_id = auth.uid());
 
-1. Push your code to a GitHub repository
-2. Import the project in Vercel
-3. Configure environment variables
-4. Deploy
+CREATE POLICY "Agents can view interests in their funds" ON interests
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM funds 
+      WHERE id = interests.fund_id AND uploaded_by_agent_id = auth.uid()
+    )
+  );
 
-## Contributing
+CREATE POLICY "Admins can view all interests" ON interests
+  FOR SELECT USING (auth.jwt() ->> 'role' = 'admin');
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+CREATE POLICY "Investors can insert their own interests" ON interests
+  FOR INSERT WITH CHECK (investor_id = auth.uid());
 
-## License
+-- Investments RLS
+CREATE POLICY "Investors can view their own investments" ON investments
+  FOR SELECT USING (investor_id = auth.uid());
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+CREATE POLICY "Agents can view and insert investments for their funds" ON investments
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM funds 
+      WHERE id = investments.fund_id AND uploaded_by_agent_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Admins can view all investments" ON investments
+  FOR SELECT USING (auth.jwt() ->> 'role' = 'admin');
+
+-- Commissions RLS
+CREATE POLICY "Agents can view their own commissions" ON commissions
+  FOR SELECT USING (agent_id = auth.uid());
+
+CREATE POLICY "Admins can view all commissions" ON commissions
+  FOR SELECT USING (auth.jwt() ->> 'role' = 'admin');
+
+-- Invitation Codes RLS
+CREATE POLICY "Agents can view their own invitation codes" ON invitation_codes
+  FOR SELECT USING (agent_id = auth.uid());
+
+CREATE POLICY "Agents can insert their own invitation codes" ON invitation_codes
+  FOR INSERT WITH CHECK (agent_id = auth.uid());
+
+CREATE POLICY "Agents can delete their own invitation codes" ON invitation_codes
+  FOR DELETE USING (agent_id = auth.uid());
+
+CREATE POLICY "Admins can view all invitation codes" ON invitation_codes
+  FOR SELECT USING (auth.jwt() ->> 'role' = 'admin');
+
+-- Saved Searches RLS
+CREATE POLICY "Investors can view their own saved searches" ON saved_searches
+  FOR SELECT USING (investor_id = auth.uid());
+
+CREATE POLICY "Investors can insert their own saved searches" ON saved_searches
+  FOR INSERT WITH CHECK (investor_id = auth.uid());
+
+CREATE POLICY "Investors can update their own saved searches" ON saved_searches
+  FOR UPDATE USING (investor_id = auth.uid());
+
+CREATE POLICY "Investors can delete their own saved searches" ON saved_searches
+  FOR DELETE USING (investor_id = auth.uid()); 
