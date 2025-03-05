@@ -4,6 +4,7 @@ import { ReactNode, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
+import StorageInitializer from '@/components/StorageInitializer';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -47,6 +48,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   // Define navigation based on user role
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', current: pathname === '/dashboard' },
+    { name: 'Profile', href: '/dashboard/profile', current: pathname === '/dashboard/profile' },
   ];
 
   // Add role-specific navigation items
@@ -73,6 +75,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      <StorageInitializer />
       {/* Navigation sidebar for larger screens */}
       <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
         <div className="flex-1 flex flex-col min-h-0 bg-gray-800">

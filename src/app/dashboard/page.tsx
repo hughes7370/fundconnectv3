@@ -249,10 +249,10 @@ export default function Dashboard() {
           <div className="bg-white overflow-hidden shadow rounded-lg mt-4 md:mt-0">
             <div className="px-4 py-5 sm:p-6">
               <dt className="text-sm font-medium text-gray-500 truncate">
-                {userRole === 'agent' ? 'Investor Interests' : 'Your Interests'}
+                {userRole === 'investor' ? 'Active Interests' : userRole === 'admin' ? 'Pending Approvals' : 'Investor Interests'}
               </dt>
               <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                {stats.activeInterests}
+                {userRole === 'investor' ? stats.activeInterests : userRole === 'admin' ? stats.pendingApprovals : stats.activeInterests}
               </dd>
             </div>
           </div>
@@ -260,14 +260,10 @@ export default function Dashboard() {
           <div className="bg-white overflow-hidden shadow rounded-lg mt-4 md:mt-0">
             <div className="px-4 py-5 sm:p-6">
               <dt className="text-sm font-medium text-gray-500 truncate">
-                {userRole === 'admin' 
-                  ? 'Pending Approvals' 
-                  : userRole === 'agent' 
-                    ? 'Potential Commissions' 
-                    : 'Matching Funds'}
+                {userRole === 'agent' ? 'Commission Rate' : userRole === 'investor' ? 'Saved Searches' : 'Total Users'}
               </dt>
               <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                {userRole === 'admin' ? stats.pendingApprovals : '$0'}
+                {userRole === 'agent' ? '5%' : userRole === 'investor' ? '0' : '0'}
               </dd>
             </div>
           </div>
