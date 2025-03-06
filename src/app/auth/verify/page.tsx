@@ -21,7 +21,10 @@ export default function VerifyEmail() {
         return;
       }
       
-      setEmail(session.user.email);
+      // Only set email if it exists
+      if (session.user.email) {
+        setEmail(session.user.email);
+      }
       
       // Check if email is already confirmed
       if (session.user.email_confirmed_at) {

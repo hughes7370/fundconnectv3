@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
@@ -14,7 +14,7 @@ const getUserIdFromSession = async () => {
 
 type UserRole = 'agent' | 'investor';
 
-export default function Register() {
+function RegisterForm() {
   const searchParams = useSearchParams();
   const initialRole = searchParams?.get('role') as UserRole || 'investor';
   
@@ -375,5 +375,13 @@ export default function Register() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Register() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center">Loading registration form...</div>}>
+      <RegisterForm />
+    </Suspense>
   );
 } 

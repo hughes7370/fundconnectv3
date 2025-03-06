@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
@@ -29,7 +29,7 @@ type FilterState = {
   sector: string;
 };
 
-export default function InvestorFunds() {
+function FundsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -760,5 +760,13 @@ export default function InvestorFunds() {
       
       {renderQuickViewModal()}
     </DashboardLayout>
+  );
+}
+
+export default function InvestorFunds() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center">Loading funds...</div>}>
+      <FundsContent />
+    </Suspense>
   );
 } 
