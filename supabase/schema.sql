@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS interests (
   investor_id UUID NOT NULL REFERENCES investors(user_id),
   fund_id UUID NOT NULL REFERENCES funds(id) ON DELETE CASCADE,
   timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  agent_id UUID REFERENCES agents(user_id),
   UNIQUE(investor_id, fund_id)
 );
 
@@ -185,6 +186,9 @@ CREATE POLICY "Admins can view all interests" ON interests
 
 CREATE POLICY "Investors can insert their own interests" ON interests
   FOR INSERT WITH CHECK (investor_id = auth.uid());
+
+CREATE POLICY "Investors can delete their own interests" ON interests
+  FOR DELETE USING (investor_id = auth.uid());
 
 -- Investments RLS
 CREATE POLICY "Investors can view their own investments" ON investments

@@ -39,6 +39,8 @@ export default function InvestorInterests() {
           return;
         }
         
+        console.log('Loading interests for user:', session.user.id);
+        
         // Load interests with fund details
         const { data, error: interestsError } = await supabase
           .from('interests')
@@ -61,30 +63,51 @@ export default function InvestorInterests() {
           .eq('investor_id', session.user.id)
           .order('timestamp', { ascending: false });
           
-        if (interestsError) throw interestsError;
+        if (interestsError) {
+          console.error('Supabase error loading interests:', interestsError);
+          throw interestsError;
+        }
+        
+        console.log('Interests data loaded:', data);
         
         // Transform the data to match our Interest interface
-        const formattedInterests: Interest[] = data?.map((item: any) => ({
-          id: item.id,
-          timestamp: item.timestamp,
-          fund: {
-            id: item.fund.id,
-            name: item.fund.name,
-            size: item.fund.size,
-            strategy: item.fund.strategy,
-            sector_focus: item.fund.sector_focus,
-            geography: item.fund.geography,
-            agent: {
-              name: item.fund.agent.name,
-              firm: item.fund.agent.firm
-            }
+        const formattedInterests: Interest[] = data?.map((item: any) => {
+          // Make sure fund exists
+          if (!item.fund) {
+            console.error('Interest record missing fund data:', item);
+            return null;
           }
-        })) || [];
+          
+          return {
+            id: item.id,
+            timestamp: item.timestamp,
+            fund: {
+              id: item.fund.id,
+              name: item.fund.name,
+              size: item.fund.size,
+              strategy: item.fund.strategy,
+              sector_focus: item.fund.sector_focus,
+              geography: item.fund.geography,
+              agent: {
+                name: item.fund.agent?.name || 'Unknown Agent',
+                firm: item.fund.agent?.firm || 'Unknown Firm'
+              }
+            }
+          };
+        }).filter((interest): interest is Interest => interest !== null) || [];
         
+        console.log('Formatted interests:', formattedInterests);
         setInterests(formattedInterests);
       } catch (error: any) {
         console.error('Error loading interests:', error);
-        setError(error.message || 'An error occurred while loading your interests');
+        // Show more detailed error information
+        if (error.message) {
+          setError(`Error loading interests: ${error.message}`);
+        } else if (error.code) {
+          setError(`Error loading interests (code ${error.code}): ${error.details || error.hint || 'Unknown error'}`);
+        } else {
+          setError(error.toString() || 'An error occurred while loading your interests');
+        }
       } finally {
         setLoading(false);
       }
@@ -119,12 +142,29 @@ export default function InvestorInterests() {
     }
     
     try {
+      // Get the current user session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        router.push('/auth/login');
+        return;
+      }
+      
+      console.log('Removing interest with ID:', interestId);
+      
+      // Delete the interest record
       const { error } = await supabase
         .from('interests')
         .delete()
-        .eq('id', interestId);
+        .eq('id', interestId)
+        .eq('investor_id', session.user.id);
         
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error removing interest:', error);
+        throw error;
+      }
+      
+      console.log('Interest successfully removed');
       
       // Update the UI by removing the deleted interest
       setInterests(interests.filter(interest => interest.id !== interestId));

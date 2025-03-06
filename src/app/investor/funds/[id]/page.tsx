@@ -500,19 +500,22 @@ export default function FundDetail() {
         return;
       }
       
-      // Create an interest record
+      // Create an interest record with timestamp
       const { error } = await supabase
         .from('interests')
         .insert([
           {
             investor_id: session.user.id,
             fund_id: fundId,
+            timestamp: new Date().toISOString()
           },
         ]);
         
       if (error) throw error;
       
       setHasExpressedInterest(true);
+      alert('Your interest has been recorded.');
+      
     } catch (error: any) {
       console.error('Error expressing interest:', error);
       alert('An error occurred while expressing interest. Please try again.');
@@ -594,7 +597,7 @@ export default function FundDetail() {
                   type="button"
                   onClick={handleExpressInterest}
                   disabled={expressingInterest}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   {expressingInterest ? (
                     <>
@@ -875,14 +878,14 @@ export default function FundDetail() {
                           >
                             <span className="sr-only">Website</span>
                             <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                              <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm6.918 6h-3.215c-.188-1.424-.42-2.65-.658-3.477 1.634.89 2.905 2.068 3.873 3.477zM12 4.25c.323 0 .917 1.108 1.374 3.75h-2.748C11.083 5.358 11.677 4.25 12 4.25zm-6.918 3.75c.968-1.41 2.239-2.587 3.873-3.477-.238.827-.47 2.053-.658 3.477H5.082zM4.25 12c0-.69.062-1.363.18-2h3.726c-.045.664-.074 1.327-.074 2s.03 1.336.074 2H4.43c-.118-.637-.18-1.31-.18-2s.062-1.363.18-2zm.832 4h3.215c.188 1.424.42 2.65.658 3.477-1.634-.89-2.905-2.068-3.873-3.477zM12 19.75c-.323 0-.917-1.108-1.374-3.75h2.748c-.457 2.642-1.051 3.75-1.374 3.75zm0-5.75c-.552 0-1-.448-1-1s.448-1 1-1 1 .448 1 1-.448 1-1 1zm6.918 5.75c-.968 1.41-2.239 2.587-3.873 3.477.238-.827.47-2.053.658-3.477h3.215zM16.07 14c.045-.664.074-1.327.074-2s-.03-1.336-.074-2h3.726c.118.637.18 1.31.18 2s-.062 1.363-.18 2h-3.726z"/>
+                              <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm6.918 6h-3.215c-.188-1.424-.42-2.65-.658-3.477 1.634.89 2.905 2.068 3.873 3.477zM12 4.25c.323 0 .917 1.108 1.374 3.75h-2.748C11.083 5.358 11.677 4.25 12 4.25zm-6.918 3.75c.968-1.41 2.239-2.587 3.873-3.477-.238.827-.47 2.053-.658 3.477H5.082zM4.25 12c0-.69.062-1.363.18-2h3.726c-.045.664-.074 1.327-.074 2s.03 1.336.074 2H4.43c-.118-.637-.18-1.31-.18-2s.062-1.363.18-2zm.832 4h3.215c.188 1.424.42 2.65.658 3.477-1.634-.89-2.905-2.068-3.873-3.477zM12 19.75c-.323 0-.917-1.108-1.374-3.75h2.748c.457 2.642 1.051 3.75 1.374 3.75zm0-5.75c-.552 0-1-.448-1-1s.448-1 1-1 1 .448 1 1-.448 1-1 1zm6.918 5.75c-.968 1.41-2.239 2.587-3.873 3.477.238-.827.47-2.053.658-3.477h3.215zM16.07 14c.045-.664.074-1.327.074-2s-.03-1.336-.074-2h3.726c.118.637.18 1.31.18 2s-.062 1.363-.18 2h-3.726z"/>
                             </svg>
                           </a>
                         )}
                         
                         <button
                           type="button"
-                          className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                          className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                         >
                           Contact Agent
                         </button>
