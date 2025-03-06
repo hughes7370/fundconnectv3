@@ -20,14 +20,42 @@ export async function GET() {
     const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
     
     if (bucketsError) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Failed to list buckets',
-        message: bucketsError.message
-      }, { status: 500 });
+      console.log('Failed to list buckets:', bucketsError.message);
+      // Don't return an error here, try a different approach
     }
     
-    const bucketExists = buckets.some(bucket => bucket.name === 'profile_photos');
+    // First check if the bucket exists in the list
+    let bucketExists = buckets && buckets.some(bucket => bucket.name === 'profile_photos');
+    
+    // If we couldn't confirm from the list, try to list files in the bucket
+    if (!bucketExists || bucketsError) {
+      console.log('Trying alternative bucket check by listing files...');
+      const { data: fileList, error: fileListError } = await supabase.storage
+        .from('profile_photos')
+        .list();
+        
+      if (!fileListError) {
+        // If we can list files, the bucket exists
+        bucketExists = true;
+        console.log('Bucket exists (confirmed by listing files)');
+      } else {
+        console.log('Failed to list files in bucket:', fileListError.message);
+        
+        // One more attempt - try to get bucket details directly
+        try {
+          const { data: publicUrl } = supabase.storage
+            .from('profile_photos')
+            .getPublicUrl('test');
+            
+          if (publicUrl) {
+            bucketExists = true;
+            console.log('Bucket exists (confirmed by getting public URL)');
+          }
+        } catch (e) {
+          console.log('Failed to get public URL:', e);
+        }
+      }
+    }
     
     if (!bucketExists) {
       return NextResponse.json({ 

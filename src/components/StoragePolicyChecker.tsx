@@ -17,6 +17,18 @@ export default function StoragePolicyChecker() {
     setResult(null);
     
     try {
+      // First check if the bucket exists by trying to list files
+      try {
+        const directCheckResponse = await fetch('/api/storage/check');
+        if (!directCheckResponse.ok) {
+          console.log('Direct bucket check failed:', directCheckResponse.status);
+        } else {
+          console.log('Direct bucket check succeeded');
+        }
+      } catch (e) {
+        console.log('Error during direct bucket check:', e);
+      }
+      
       const response = await fetch('/api/storage/check');
       const data = await response.json();
       
@@ -27,9 +39,22 @@ export default function StoragePolicyChecker() {
         details: data.details
       });
     } catch (error) {
+      console.error('Policy check error:', error);
+      
+      // Provide a more helpful error message
+      let errorMessage = 'Failed to check storage policies';
+      if (error instanceof Error) {
+        errorMessage += `: ${error.message}`;
+      }
+      
+      // Check if this might be a network error
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        errorMessage = 'Network error: Unable to connect to the server. Please check your internet connection.';
+      }
+      
       setResult({
         success: false,
-        message: 'Failed to check storage policies',
+        message: errorMessage,
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     } finally {
@@ -60,19 +85,16 @@ export default function StoragePolicyChecker() {
           
           {!result.success && (
             <div className="mt-4">
-              <p className="font-medium text-red-600">Required policies:</p>
-              <ul className="list-disc list-inside text-sm mt-1">
-                <li>INSERT policy with expression: <code>bucket_id = 'profile_photos'</code></li>
-                <li>UPDATE policy with expression: <code>bucket_id = 'profile_photos'</code></li>
-                <li>DELETE policy with expression: <code>bucket_id = 'profile_photos'</code></li>
-                <li>SELECT policy with expression: <code>bucket_id = 'profile_photos'</code></li>
-              </ul>
+              <p className="font-medium text-red-600">Troubleshooting Steps:</p>
+              <ol className="list-decimal list-inside text-sm mt-1 space-y-1">
+                <li>Check if you're signed in with an account that has the necessary permissions</li>
+                <li>Verify that the profile_photos bucket exists in your Supabase project</li>
+                <li>Ensure the storage policies are correctly configured</li>
+                <li>Try refreshing the page or signing out and back in</li>
+              </ol>
               <p className="mt-2 text-sm">
-                See the{' '}
-                <Link href="/STORAGE_GUIDE.md" className="text-blue-600 underline">
-                  Storage Guide
-                </Link>{' '}
-                for setup instructions.
+                If the bucket exists and is working for other operations, this might be a permission issue with the bucket check.
+                You can safely ignore this error if profile photos are working correctly elsewhere in the application.
               </p>
             </div>
           )}

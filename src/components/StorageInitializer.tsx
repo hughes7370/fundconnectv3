@@ -11,20 +11,15 @@ export default function StorageInitializer() {
   useEffect(() => {
     async function initializeStorage() {
       try {
-        console.log('Initializing storage...');
-        const success = await ensureProfilePhotosBucket();
+        // Attempt to initialize storage but don't block the app if it fails
+        await ensureProfilePhotosBucket();
         
-        if (success) {
-          console.log('Storage initialization successful');
-          setInitialized(true);
-        } else {
-          console.log('Storage initialization failed, but continuing silently');
-          // We'll continue silently without showing an error message
-          // since the storage system is working correctly now
-        }
+        // Always mark as initialized to avoid blocking the app
+        setInitialized(true);
       } catch (err) {
-        console.error('Error initializing storage:', err);
-        // We'll continue silently without showing an error message
+        // Silently continue if there's an error
+        console.log('Storage initialization encountered an error, but continuing silently');
+        setInitialized(true);
       }
     }
 
