@@ -55,7 +55,7 @@ The following features need to be implemented to complete the MVP:
 - [X] Fund delete functionality
 - [X] Investor assignment interface
 - [X] Generate invitation codes for investors
-- [ ] Messaging and communication with investors
+- [X] Messaging and communication with investors
 
 ### Investor Features
 
@@ -75,7 +75,6 @@ The following features need to be implemented to complete the MVP:
 ### Document Management
 
 - [ ] Implement document previews
-- [ ] Upload multiple documents (users will need to select from a dropdown menu 
 
 ### General Improvements
 

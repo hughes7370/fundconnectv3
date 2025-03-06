@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
 import StorageInitializer from '@/components/StorageInitializer';
+import MessageNotification from '@/components/MessageNotification';
 import Image from 'next/image';
 
 interface DashboardLayoutProps {
@@ -17,6 +18,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -38,6 +40,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       
       setUserRole(role);
       setUserName(name);
+      setUserId(session.user.id);
       
       // Try to get profile data including avatar
       try {
@@ -352,6 +355,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
           </div>
           <div className="flex items-center">
+            {/* Message Notification for Mobile */}
+            {userId && userRole && userRole !== 'admin' && (
+              <MessageNotification 
+                userId={userId} 
+                userRole={userRole === 'investor' ? 'investor' : 'agent'} 
+              />
+            )}
             <div className="relative ml-3">
               <div>
                 <button
@@ -397,6 +407,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <main className="flex-1">
           {/* Desktop top bar */}
           <div className="hidden md:flex items-center justify-end bg-white border-b border-gray-200 p-4 shadow-sm">
+            {/* Message Notification for Desktop */}
+            {userId && userRole && userRole !== 'admin' && (
+              <div className="mr-4">
+                <MessageNotification 
+                  userId={userId} 
+                  userRole={userRole === 'investor' ? 'investor' : 'agent'} 
+                />
+              </div>
+            )}
             <div className="relative">
               <button
                 type="button"

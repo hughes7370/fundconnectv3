@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import InviteInvestorModal from './InviteInvestorModal';
+import MessageModal from '@/components/MessageModal';
 import { supabase } from '@/utils/supabase';
 import { useRouter } from 'next/navigation';
 
@@ -25,6 +26,7 @@ export default function InvestorsClient({ investors }: InvestorsClientProps) {
   const [displayInvestors, setDisplayInvestors] = useState<Investor[]>(investors);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const router = useRouter();
   
   // Fetch investors when refreshTrigger changes
@@ -212,9 +214,8 @@ export default function InvestorsClient({ investors }: InvestorsClientProps) {
         conversationId = newConv[0].id;
       }
       
-      // Navigate to the conversation
-      console.log('Navigating to conversation:', conversationId);
-      router.push(`/messages/${conversationId}`);
+      // Open the message modal with the conversation ID
+      setActiveConversationId(conversationId);
       
     } catch (error) {
       console.error('Error in message investor:', error);
@@ -417,6 +418,14 @@ export default function InvestorsClient({ investors }: InvestorsClientProps) {
         onClose={() => setIsInviteModalOpen(false)}
         onInviteSuccess={handleInviteSuccess}
       />
+      
+      {/* Message Modal */}
+      {activeConversationId && (
+        <MessageModal 
+          conversationId={activeConversationId} 
+          onClose={() => setActiveConversationId(null)} 
+        />
+      )}
     </>
   );
 } 
