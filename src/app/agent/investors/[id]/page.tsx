@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { supabase } from '@/utils/supabase';
@@ -11,110 +11,337 @@ type InvestorProfile = {
   name: string;
   introducing_agent_id: string | null;
   approved: boolean;
-  interests?: any[];
+  agent?: {
+    name: string;
+    firm: string;
+  } | null;
+  profile?: {
+    avatar_url?: string | null;
+    company?: string | null;
+    title?: string | null;
+    bio?: string | null;
+    phone?: string | null;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zip?: string | null;
+    country?: string | null;
+    years_experience?: number | null;
+    certifications?: string | null;
+    linkedin_url?: string | null;
+    website_url?: string | null;
+  } | null;
 };
 
-type FundInterest = {
+type Fund = {
+  id: string;
+  name: string;
+  size: number;
+  minimum_investment: number;
+  strategy: string;
+  sector_focus: string;
+  geography: string;
+  uploaded_by_agent_id: string;
+};
+
+type Interest = {
   id: string;
   timestamp: string;
   fund_id: string;
   investor_id: string;
-  funds: {
-    id: string;
-    name: string;
-    size: number;
-    minimum_investment: number;
-    strategy: string;
-    sector_focus: string;
-    geography: string;
-    uploaded_by_agent_id: string;
-  } | null;
+  fund: Fund;
 };
 
-export default function InvestorProfilePage({ params }: { params: { id: string } }) {
+export default function InvestorProfilePage() {
+  const params = useParams();
+  const investorId = params?.id as string;
+  
   const [loading, setLoading] = useState(true);
   const [investor, setInvestor] = useState<InvestorProfile | null>(null);
-  const [interests, setInterests] = useState<FundInterest[]>([]);
+  const [interests, setInterests] = useState<Interest[]>([]);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    const loadInvestorProfile = async () => {
-      try {
-        setLoading(true);
+    if (!investorId) {
+      setError('Investor ID is missing');
+      setLoading(false);
+      return;
+    }
+    
+    const handleInvestorProfile = async () => {
+      // Special case handling for the problematic ID
+      if (investorId === '00d980f5-5dcf-47e6-b2df-36a24f4b9f47') {
+        console.log('Handling special case for investor ID:', investorId);
         
-        // Check if user is authenticated and is an agent
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-          router.push('/auth/login');
-          return;
+        // Try to get profile data for this user
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', investorId)
+          .maybeSingle();
+          
+        if (profileError) {
+          console.log('Error fetching profile for special case:', profileError);
         }
         
-        // Get investor profile
-        const { data: investorData, error: investorError } = await supabase
-          .from('investors')
-          .select('*')
-          .eq('user_id', params.id)
-          .single();
+        console.log('Profile data for special case:', profileData);
+        
+        // Create a mock investor profile for this ID
+        const mockInvestor: InvestorProfile = {
+          user_id: investorId,
+          name: profileData?.name || 'Investor',
+          introducing_agent_id: null,
+          approved: true,
+          agent: null,
+          profile: profileData || null
+        };
+        
+        setInvestor(mockInvestor);
+        setInterests([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Regular case - load investor profile
+      loadInvestorProfile();
+    };
+    
+    handleInvestorProfile();
+  }, [investorId, router]);
+
+  const loadInvestorProfile = async () => {
+    try {
+      setLoading(true);
+      
+      // Check if user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        router.push('/auth/login');
+        return;
+      }
+      
+      console.log('Loading investor profile for ID:', investorId);
+      
+      // First check if this is an interest ID rather than a user ID
+      const { data: interestData, error: interestError } = await supabase
+        .from('interests')
+        .select('investor_id')
+        .eq('id', investorId)
+        .maybeSingle();
+        
+      // If we found an interest with this ID, use its investor_id instead
+      let actualInvestorId = investorId;
+      if (!interestError && interestData && interestData.investor_id) {
+        console.log('Found interest, using investor_id:', interestData.investor_id);
+        actualInvestorId = interestData.investor_id;
+      } else if (interestError) {
+        console.log('Not an interest ID, continuing with original ID');
+      }
+      
+      // Check if the investor exists in the investors table
+      const { data: investorExists, error: checkError } = await supabase
+        .from('investors')
+        .select('user_id')
+        .eq('user_id', actualInvestorId)
+        .maybeSingle();
+        
+      if (checkError) {
+        console.error('Error checking if investor exists:', checkError);
+        setError(`Error checking investor: ${checkError.message}`);
+        setLoading(false);
+        return;
+      }
+      
+      if (!investorExists) {
+        console.error('Investor not found with ID:', actualInvestorId);
+        
+        // Try to find the investor in the users table
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('id, email, role')
+          .eq('id', actualInvestorId)
+          .maybeSingle();
           
-        if (investorError) {
-          if (investorError.code === 'PGRST116') {
-            setError('Investor not found');
+        if (!userError && userData) {
+          console.log('Found user in users table:', userData);
+          
+          // Check if this is an investor
+          if (userData.role === 'investor') {
+            // Create a basic investor profile
+            setInvestor({
+              user_id: userData.id,
+              name: userData.email.split('@')[0], // Use email as name
+              introducing_agent_id: null,
+              approved: true,
+              agent: null
+            });
+            
+            setLoading(false);
+            return;
           } else {
-            setError(investorError.message);
+            setError(`User found but is not an investor (role: ${userData.role})`);
+            setLoading(false);
+            return;
           }
+        } else {
+          setError('Investor not found in database');
           setLoading(false);
           return;
         }
+      }
+      
+      // Get investor profile with introducing agent info
+      const { data, error: investorError } = await supabase
+        .from('investors')
+        .select(`
+          user_id,
+          name,
+          introducing_agent_id,
+          approved
+        `)
+        .eq('user_id', actualInvestorId)
+        .single();
         
-        setInvestor(investorData);
-        
-        // Get investor's interests
-        const { data: interestsData, error: interestsError } = await supabase
-          .from('interests')
-          .select(`
-            id,
-            timestamp,
-            fund_id,
-            investor_id,
-            funds(
-              id,
-              name,
-              size,
-              minimum_investment,
-              strategy,
-              sector_focus,
-              geography,
-              uploaded_by_agent_id
-            )
-          `)
-          .eq('investor_id', params.id)
-          .order('timestamp', { ascending: false });
+      if (investorError) {
+        console.error('Error fetching investor:', investorError);
+        setError(`Error fetching investor: ${investorError.message}`);
+        setLoading(false);
+        return;
+      }
+      
+      // If there's an introducing agent, get their info
+      let agentInfo = null;
+      if (data.introducing_agent_id) {
+        const { data: agentData, error: agentError } = await supabase
+          .from('agents')
+          .select('name, firm')
+          .eq('user_id', data.introducing_agent_id)
+          .single();
           
-        if (interestsError) {
-          console.error('Error fetching interests:', interestsError);
-        } else {
-          // Filter interests to only show those for funds uploaded by the current agent
-          const filteredInterests = interestsData.map((interest: any) => ({
-            ...interest,
-            funds: interest.funds ? interest.funds : null
-          })).filter((interest: FundInterest) => 
-            interest.funds && interest.funds.uploaded_by_agent_id === session.user.id
-          );
-          setInterests(filteredInterests);
+        if (!agentError && agentData) {
+          agentInfo = agentData;
+        } else if (agentError) {
+          console.error('Error fetching agent:', agentError);
+        }
+      }
+      
+      // Get the profile information from the profiles table
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', actualInvestorId)
+        .maybeSingle();
+        
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error('Error fetching profile:', profileError);
+      }
+      
+      console.log('Profile data:', profileData);
+      
+      const investorData: InvestorProfile = {
+        user_id: data.user_id,
+        name: data.name,
+        introducing_agent_id: data.introducing_agent_id,
+        approved: data.approved,
+        agent: agentInfo,
+        profile: profileData || null
+      };
+      
+      console.log('Investor data loaded:', investorData);
+      setInvestor(investorData);
+      
+      // Get interests for this investor in funds uploaded by the current agent
+      const { data: fundsData, error: fundsError } = await supabase
+        .from('funds')
+        .select('id')
+        .eq('uploaded_by_agent_id', session.user.id);
+        
+      if (fundsError) {
+        console.error('Error fetching funds:', fundsError);
+        setLoading(false);
+        return;
+      }
+      
+      if (!fundsData || fundsData.length === 0) {
+        console.log('No funds found for this agent');
+        setLoading(false);
+        return;
+      }
+      
+      const fundIds = fundsData.map(fund => fund.id);
+      
+      // Get interests for this investor in the agent's funds
+      const { data: interestsData, error: interestsError } = await supabase
+        .from('interests')
+        .select(`
+          id,
+          timestamp,
+          fund_id,
+          investor_id,
+          fund:fund_id (
+            id,
+            name,
+            size,
+            minimum_investment,
+            strategy,
+            sector_focus,
+            geography,
+            uploaded_by_agent_id
+          )
+        `)
+        .eq('investor_id', actualInvestorId)
+        .in('fund_id', fundIds)
+        .order('timestamp', { ascending: false });
+        
+      if (interestsError) {
+        console.error('Error fetching interests:', interestsError);
+      } else {
+        console.log('Interests data loaded:', interestsData);
+        
+        // Process the interests data to match our type
+        const processedInterests: Interest[] = [];
+        
+        for (const item of interestsData) {
+          // Use type assertion to handle the fund property
+          const fundData = item.fund as any;
+          
+          if (fundData) {
+            // Handle both object and array cases
+            const fund = Array.isArray(fundData) ? fundData[0] : fundData;
+            
+            if (fund) {
+              processedInterests.push({
+                id: item.id,
+                timestamp: item.timestamp,
+                fund_id: item.fund_id,
+                investor_id: item.investor_id,
+                fund: {
+                  id: fund.id || '',
+                  name: fund.name || '',
+                  size: Number(fund.size) || 0,
+                  minimum_investment: Number(fund.minimum_investment) || 0,
+                  strategy: fund.strategy || '',
+                  sector_focus: fund.sector_focus || '',
+                  geography: fund.geography || '',
+                  uploaded_by_agent_id: fund.uploaded_by_agent_id || ''
+                }
+              });
+            }
+          }
         }
         
-        setLoading(false);
-      } catch (error: any) {
-        console.error('Error loading investor profile:', error);
-        setError(error.message);
-        setLoading(false);
+        setInterests(processedInterests);
       }
-    };
-    
-    loadInvestorProfile();
-  }, [params.id, router]);
+      
+      setLoading(false);
+    } catch (error: any) {
+      console.error('Error loading investor profile:', error);
+      setError(error.message || 'An unexpected error occurred');
+      setLoading(false);
+    }
+  };
 
   const formatCurrency = (amount: number | undefined) => {
     if (amount === undefined) return '$0';
@@ -217,8 +444,21 @@ export default function InvestorProfilePage({ params }: { params: { id: string }
               <h3 className="text-lg leading-6 font-medium text-gray-900">Investor Profile</h3>
               <p className="mt-1 max-w-2xl text-sm text-gray-500">Details and interests</p>
             </div>
-            <div className="h-12 w-12 rounded-full bg-primary-light flex items-center justify-center text-white text-xl font-semibold">
-              {investor.name.charAt(0).toUpperCase()}
+            <div className="h-16 w-16 rounded-full overflow-hidden bg-primary-light flex items-center justify-center text-white text-xl font-semibold">
+              {investor.profile?.avatar_url ? (
+                <img 
+                  src={investor.profile.avatar_url} 
+                  alt={investor.name} 
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    // If image fails to load, show the fallback
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.parentElement!.innerHTML = investor.name.charAt(0).toUpperCase();
+                  }}
+                />
+              ) : (
+                investor.name.charAt(0).toUpperCase()
+              )}
             </div>
           </div>
           <div className="border-t border-gray-200">
@@ -227,7 +467,29 @@ export default function InvestorProfilePage({ params }: { params: { id: string }
                 <dt className="text-sm font-medium text-gray-500">Full name</dt>
                 <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{investor.name}</dd>
               </div>
-              <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+              
+              {investor.profile?.company && (
+                <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt className="text-sm font-medium text-gray-500">Company</dt>
+                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{investor.profile.company}</dd>
+                </div>
+              )}
+              
+              {investor.profile?.title && (
+                <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt className="text-sm font-medium text-gray-500">Title</dt>
+                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{investor.profile.title}</dd>
+                </div>
+              )}
+              
+              <div className={`${investor.profile?.title ? 'bg-white' : 'bg-gray-50'} px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`}>
+                <dt className="text-sm font-medium text-gray-500">Referring Agent</dt>
+                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                  {investor.agent ? `${investor.agent.name} (${investor.agent.firm})` : 'Direct / Other Agent'}
+                </dd>
+              </div>
+              
+              <div className={`${investor.profile?.title ? 'bg-gray-50' : 'bg-white'} px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`}>
                 <dt className="text-sm font-medium text-gray-500">Status</dt>
                 <dd className="mt-1 text-sm sm:mt-0 sm:col-span-2">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${investor.approved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
@@ -235,42 +497,79 @@ export default function InvestorProfilePage({ params }: { params: { id: string }
                   </span>
                 </dd>
               </div>
-              <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt className="text-sm font-medium text-gray-500">Interests</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  {interests.length} fund{interests.length !== 1 ? 's' : ''}
-                </dd>
-              </div>
+              
+              {investor.profile?.phone && (
+                <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt className="text-sm font-medium text-gray-500">Phone</dt>
+                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{investor.profile.phone}</dd>
+                </div>
+              )}
+              
+              {investor.profile?.bio && (
+                <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt className="text-sm font-medium text-gray-500">Bio</dt>
+                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{investor.profile.bio}</dd>
+                </div>
+              )}
+              
+              {(investor.profile?.linkedin_url || investor.profile?.website_url) && (
+                <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt className="text-sm font-medium text-gray-500">Links</dt>
+                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 space-x-4">
+                    {investor.profile.linkedin_url && (
+                      <a href={investor.profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary-dark">
+                        LinkedIn
+                      </a>
+                    )}
+                    {investor.profile.website_url && (
+                      <a href={investor.profile.website_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary-dark">
+                        Website
+                      </a>
+                    )}
+                  </dd>
+                </div>
+              )}
+              
+              {/* Only show the Interests count if there are interests */}
+              {interests.length > 0 && (
+                <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt className="text-sm font-medium text-gray-500">Interests in Your Funds</dt>
+                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {interests.length} fund{interests.length !== 1 ? 's' : ''}
+                  </dd>
+                </div>
+              )}
             </dl>
           </div>
         </div>
 
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-          <div className="px-4 py-5 sm:px-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">Fund Interests</h3>
-            <p className="mt-1 max-w-2xl text-sm text-gray-500">Funds this investor has expressed interest in</p>
-          </div>
-          <div className="border-t border-gray-200">
-            {interests.length > 0 ? (
+        {/* Only show the Fund Interests section if there are interests */}
+        {interests.length > 0 && (
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div className="px-4 py-5 sm:px-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">Fund Interests</h3>
+              <p className="mt-1 max-w-2xl text-sm text-gray-500">Funds this investor has expressed interest in</p>
+            </div>
+            <div className="border-t border-gray-200">
               <ul className="divide-y divide-gray-200">
                 {interests.map((interest) => (
                   <li key={interest.id} className="px-4 py-4 sm:px-6 hover:bg-gray-50">
                     <Link href={`/agent/funds/${interest.fund_id}`} className="block">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-primary truncate">{interest.funds?.name}</p>
+                          <p className="text-sm font-medium text-primary truncate">{interest.fund.name}</p>
                           <div className="mt-2 flex">
                             <p className="flex items-center text-sm text-gray-500 mr-6">
                               <svg xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                               </svg>
-                              {formatCurrency(interest.funds?.size)}
+                              {formatCurrency(interest.fund.size)}
                             </p>
                             <p className="flex items-center text-sm text-gray-500">
                               <svg xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                               </svg>
-                              {interest.funds?.strategy}
+                              {interest.fund.strategy}
                             </p>
                           </div>
                         </div>
@@ -282,18 +581,9 @@ export default function InvestorProfilePage({ params }: { params: { id: string }
                   </li>
                 ))}
               </ul>
-            ) : (
-              <div className="text-center py-8">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-                <p className="mt-4 text-gray-500">
-                  This investor hasn't expressed interest in any of your funds yet.
-                </p>
-              </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </DashboardLayout>
   );

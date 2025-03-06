@@ -21,17 +21,24 @@ type FundFormInputs = {
   carry: number;
 };
 
-export default function EditFund() {
+export default function EditFundPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [document, setDocument] = useState<File | null>(null);
   const router = useRouter();
   const params = useParams();
-  const fundId = params.id as string;
+  const fundId = params?.id as string;
   
   const { register, handleSubmit, formState: { errors }, reset } = useForm<FundFormInputs>();
 
   useEffect(() => {
+    // Only proceed if fundId is available
+    if (!fundId) {
+      setError('Fund ID is missing');
+      setLoading(false);
+      return;
+    }
+    
     const loadFund = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();

@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { supabase } from '@/utils/supabase';
+import React from 'react';
 
 type Fund = {
   id: string;
@@ -51,10 +52,10 @@ type Fund = {
   }[];
 };
 
-export default function FundDetail() {
-  const params = useParams();
-  const fundId = params.id as string;
+export default function FundDetailsPage() {
   const router = useRouter();
+  const params = useParams();
+  const fundId = params?.id as string;
   
   const [fund, setFund] = useState<Fund | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,7 +65,14 @@ export default function FundDetail() {
   const [showAgentDetails, setShowAgentDetails] = useState(false);
 
   useEffect(() => {
-    const loadFund = async () => {
+    // Only proceed if fundId is available
+    if (!fundId) {
+      setError('Fund ID is missing');
+      setLoading(false);
+      return;
+    }
+    
+    const loadFundDetails = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
@@ -484,9 +492,7 @@ export default function FundDetail() {
       }
     };
     
-    if (fundId) {
-      loadFund();
-    }
+    loadFundDetails();
   }, [fundId, router]);
 
   const handleExpressInterest = async () => {

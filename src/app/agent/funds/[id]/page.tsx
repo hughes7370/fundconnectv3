@@ -32,16 +32,23 @@ type Fund = {
   }[];
 };
 
-export default function FundDetail() {
-  const params = useParams();
-  const fundId = params.id as string;
+export default function FundDetailsPage() {
   const router = useRouter();
+  const params = useParams();
+  const fundId = params?.id as string;
   
   const [fund, setFund] = useState<Fund | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Only proceed if fundId is available
+    if (!fundId) {
+      setError('Fund ID is missing');
+      setLoading(false);
+      return;
+    }
+    
     const loadFund = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -130,9 +137,7 @@ export default function FundDetail() {
       }
     };
     
-    if (fundId) {
-      loadFund();
-    }
+    loadFund();
   }, [fundId, router]);
 
   const formatCurrency = (amount: number) => {

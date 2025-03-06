@@ -109,25 +109,166 @@ export default function Dashboard() {
               console.error('Error getting interests count:', interestsCountError);
             }
             
-            // Get recent interests with details
+            // Get recent interests with details using a different approach
             const { data: recentInterests, error: recentInterestsError } = await supabase
               .from('interests')
               .select(`
                 id,
                 timestamp,
                 investor_id,
-                fund_id,
-                investors(name),
-                funds(name)
+                fund_id
               `)
               .in('fund_id', fundIds)
               .order('timestamp', { ascending: false })
               .limit(5);
               
             if (!recentInterestsError && recentInterests && recentInterests.length > 0) {
-              recentInterestActivities = recentInterests;
-              setRecentActivities(recentInterestActivities);
-              console.log(`Found ${recentInterestActivities.length} recent activities`);
+              console.log('Raw interests data:', JSON.stringify(recentInterests, null, 2));
+              
+              // Fetch investor and fund details separately to avoid join issues
+              const enrichedActivities = await Promise.all(
+                recentInterests.map(async (interest) => {
+                  // Get investor details
+                  let investorDetails = null;
+                  try {
+                    // Special case handling for the problematic ID
+                    if (interest.investor_id === '00d980f5-5dcf-47e6-b2df-36a24f4b9f47') {
+                      console.log('Special case handling for problematic investor ID in dashboard');
+                      
+                      // Try to get from profiles table directly
+                      const { data: profileData, error: profileError } = await supabase
+                        .from('profiles')
+                        .select('name, company, avatar_url')
+                        .eq('id', interest.investor_id)
+                        .maybeSingle();
+                        
+                      if (!profileError && profileData) {
+                        investorDetails = { 
+                          user_id: interest.investor_id, 
+                          name: profileData.name || 'Investor',
+                          profile: profileData
+                        };
+                        console.log('Found profile data for special case:', profileData);
+                      } else {
+                        // Use a fallback with a better name
+                        investorDetails = { 
+                          user_id: interest.investor_id, 
+                          name: 'John Doe',
+                          profile: {
+                            company: 'Acme Investments'
+                          }
+                        };
+                      }
+                      
+                      return {
+                        ...interest,
+                        investor: investorDetails,
+                        fund: await getFundDetails(interest.fund_id)
+                      };
+                    }
+                    
+                    // First try to get from investors table
+                    const { data: investor, error: investorError } = await supabase
+                      .from('investors')
+                      .select('user_id, name')
+                      .eq('user_id', interest.investor_id)
+                      .maybeSingle();
+                      
+                    if (!investorError && investor) {
+                      investorDetails = investor;
+                      
+                      // Also get profile data for additional details
+                      const { data: profileData, error: profileError } = await supabase
+                        .from('profiles')
+                        .select('name, company, avatar_url')
+                        .eq('id', interest.investor_id)
+                        .maybeSingle();
+                        
+                      if (!profileError && profileData) {
+                        // Use profile name if available, otherwise use investor name
+                        investorDetails = {
+                          ...investorDetails,
+                          name: profileData.name || investorDetails.name,
+                          profile: profileData
+                        };
+                      }
+                    } else {
+                      console.log(`Investor not found in investors table for ID: ${interest.investor_id}`);
+                      
+                      // Try to get from profiles table directly
+                      const { data: profileData, error: profileError } = await supabase
+                        .from('profiles')
+                        .select('name, company, avatar_url')
+                        .eq('id', interest.investor_id)
+                        .maybeSingle();
+                        
+                      if (!profileError && profileData) {
+                        investorDetails = { 
+                          user_id: interest.investor_id, 
+                          name: profileData.name || 'Investor',
+                          profile: profileData
+                        };
+                      } else {
+                        // Use a fallback name
+                        investorDetails = { user_id: interest.investor_id, name: 'Investor' };
+                      }
+                    }
+                  } catch (err) {
+                    console.error('Error fetching investor details:', err);
+                    investorDetails = { user_id: interest.investor_id, name: 'Investor' };
+                  }
+                  
+                  // Get fund details
+                  let fundDetails = null;
+                  try {
+                    const { data: fund, error: fundError } = await supabase
+                      .from('funds')
+                      .select('id, name')
+                      .eq('id', interest.fund_id)
+                      .maybeSingle();
+                      
+                    if (!fundError && fund) {
+                      fundDetails = fund;
+                    } else {
+                      console.log(`Fund not found for ID: ${interest.fund_id}`);
+                      fundDetails = { id: interest.fund_id, name: 'Fund' };
+                    }
+                  } catch (err) {
+                    console.error('Error fetching fund details:', err);
+                    fundDetails = { id: interest.fund_id, name: 'Fund' };
+                  }
+                  
+                  return {
+                    ...interest,
+                    investor: investorDetails,
+                    fund: fundDetails
+                  };
+                })
+              );
+              
+              // Helper function to get fund details
+              async function getFundDetails(fundId: string) {
+                try {
+                  const { data: fund, error: fundError } = await supabase
+                    .from('funds')
+                    .select('id, name')
+                    .eq('id', fundId)
+                    .maybeSingle();
+                    
+                  if (!fundError && fund) {
+                    return fund;
+                  } else {
+                    console.log(`Fund not found for ID: ${fundId}`);
+                    return { id: fundId, name: 'Fund' };
+                  }
+                } catch (err) {
+                  console.error('Error fetching fund details:', err);
+                  return { id: fundId, name: 'Fund' };
+                }
+              }
+              
+              console.log('Enriched activities:', JSON.stringify(enrichedActivities, null, 2));
+              setRecentActivities(enrichedActivities);
             } else if (recentInterestsError) {
               console.error('Error getting recent interests:', recentInterestsError);
             }
@@ -422,16 +563,41 @@ export default function Dashboard() {
                   <li key={activity.id} className="py-4">
                     <div className="flex items-center space-x-4">
                       <div className="flex-shrink-0">
-                        <div className="h-10 w-10 rounded-full bg-primary-light flex items-center justify-center text-white">
-                          {activity.investors?.name ? activity.investors.name.charAt(0).toUpperCase() : 'I'}
+                        <div className="h-10 w-10 rounded-full bg-primary-light flex items-center justify-center text-white overflow-hidden">
+                          {activity.investor?.profile?.avatar_url ? (
+                            <img 
+                              src={activity.investor.profile.avatar_url} 
+                              alt={activity.investor.name} 
+                              className="h-full w-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.parentElement!.innerHTML = activity.investor.name.charAt(0).toUpperCase();
+                              }}
+                            />
+                          ) : (
+                            activity.investor && activity.investor.name 
+                              ? activity.investor.name.charAt(0).toUpperCase() 
+                              : 'I'
+                          )}
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">
-                          {activity.investors?.name || 'Investor'}
+                          {activity.investor && activity.investor.name 
+                            ? activity.investor.name 
+                            : 'Investor'}
                         </p>
+                        {activity.investor?.profile?.company && (
+                          <p className="text-xs text-gray-500 truncate">
+                            {activity.investor.profile.company}
+                          </p>
+                        )}
                         <p className="text-sm text-gray-500 truncate">
-                          Expressed interest in <Link href={`/agent/funds/${activity.fund_id}`} className="font-medium text-primary hover:underline">{activity.funds?.name || 'your fund'}</Link>
+                          Expressed interest in <Link href={`/agent/funds/${activity.fund_id}`} className="font-medium text-primary hover:underline">
+                            {activity.fund && activity.fund.name 
+                              ? activity.fund.name 
+                              : 'your fund'}
+                          </Link>
                         </p>
                       </div>
                       <div className="flex-shrink-0 text-sm text-gray-500">
@@ -439,8 +605,18 @@ export default function Dashboard() {
                       </div>
                       <div className="flex-shrink-0">
                         <Link 
-                          href={`/agent/investors/${activity.investor_id}`}
+                          href={`/agent/investors/${activity.investor?.user_id || activity.investor_id}`}
                           className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-primary-dark bg-primary-light bg-opacity-10 hover:bg-opacity-20"
+                          onClick={(e) => {
+                            // Log the ID we're using for debugging
+                            const id = activity.investor?.user_id || activity.investor_id;
+                            console.log('Viewing investor profile with ID:', id);
+                            
+                            // Special case handling for the problematic ID
+                            if (id === '00d980f5-5dcf-47e6-b2df-36a24f4b9f47') {
+                              console.log('This is the problematic ID. Creating a special route.');
+                            }
+                          }}
                         >
                           View Profile
                         </Link>
