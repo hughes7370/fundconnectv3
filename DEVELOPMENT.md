@@ -51,31 +51,31 @@ The following features need to be implemented to complete the MVP:
 
 ### Agent Features
 
-- [ ] Fund edit functionality
-- [ ] Fund delete functionality
-- [ ] Investor assignment interface
-- [ ] Generate invitation codes for investors
-- [ ] Commission tracking dashboard
+- [X] Fund edit functionality
+- [X] Fund delete functionality
+- [X] Investor assignment interface
+- [X] Generate invitation codes for investors
+- [ ] Messaging and communication with investors
 
 ### Investor Features
 
-- [ ] Saved search functionality
+- [X] Saved search functionality
 - [ ] Email alerts for matching funds
-- [ ] Interest history view
+- [X] Interest history view
 - [ ] Communication with agents
 
 ### Admin Features
 
 - [ ] Admin dashboard
 - [ ] User management
+- [ ] Create and assign funds to different agents
 - [ ] Approval requests handling
 - [ ] System monitoring
 
 ### Document Management
 
 - [ ] Implement document previews
-- [ ] Upload multiple documents
-- [ ] Document version control
+- [ ] Upload multiple documents (users will need to select from a dropdown menu 
 
 ### General Improvements
 

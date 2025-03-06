@@ -99,22 +99,32 @@ export default function Register() {
           
           // If invitation code is provided, find the agent
           if (invitationCode) {
-            const { data: agentData, error: inviteError } = await supabase
+            console.log('Invitation code provided:', invitationCode);
+            
+            // First try to get the invitation code without any RLS restrictions
+            const { data: invitationData, error: invitationError } = await supabase
               .from('invitation_codes')
-              .select('agent_id')
-              .eq('code', invitationCode)
+              .select('agent_id, code')
+              .eq('code', invitationCode.trim().toUpperCase())
               .single();
             
-            if (inviteError && inviteError.code !== 'PGRST116') {
-              throw inviteError;
-            }
+            console.log('Invitation lookup result:', { invitationData, invitationError });
             
-            if (agentData) {
-              agentId = agentData.agent_id;
+            if (invitationError) {
+              if (invitationError.code === 'PGRST116') {
+                console.warn('No invitation found with code:', invitationCode);
+              } else {
+                console.error('Error looking up invitation code:', invitationError);
+                throw new Error(`Invalid invitation code: ${invitationError.message}`);
+              }
+            } else if (invitationData) {
+              agentId = invitationData.agent_id;
+              console.log('Found agent ID from invitation:', agentId);
             }
           }
           
           try {
+            console.log('Creating investor profile with agent ID:', agentId);
             const { error: profileError } = await supabase
               .from('investors')
               .insert([

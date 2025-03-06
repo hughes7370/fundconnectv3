@@ -95,6 +95,17 @@ CREATE TABLE IF NOT EXISTS saved_searches (
   alerts_enabled BOOLEAN DEFAULT FALSE
 );
 
+-- Pending investors table
+CREATE TABLE IF NOT EXISTS pending_investors (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  invitation_code TEXT NOT NULL REFERENCES invitation_codes(code),
+  agent_id UUID NOT NULL REFERENCES agents(user_id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  registered BOOLEAN DEFAULT FALSE
+);
+
 -- Enable Row Level Security
 ALTER TABLE agents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE investors ENABLE ROW LEVEL SECURITY;
@@ -225,6 +236,10 @@ CREATE POLICY "Agents can delete their own invitation codes" ON invitation_codes
 CREATE POLICY "Admins can view all invitation codes" ON invitation_codes
   FOR SELECT USING (auth.jwt() ->> 'role' = 'admin');
 
+-- Allow anyone to look up invitation codes by code value
+CREATE POLICY "Anyone can look up invitation codes by code" ON invitation_codes
+  FOR SELECT USING (true);
+
 -- Saved Searches RLS
 CREATE POLICY "Investors can view their own saved searches" ON saved_searches
   FOR SELECT USING (investor_id = auth.uid());
@@ -236,4 +251,23 @@ CREATE POLICY "Investors can update their own saved searches" ON saved_searches
   FOR UPDATE USING (investor_id = auth.uid());
 
 CREATE POLICY "Investors can delete their own saved searches" ON saved_searches
-  FOR DELETE USING (investor_id = auth.uid()); 
+  FOR DELETE USING (investor_id = auth.uid());
+
+-- Enable RLS for pending_investors table
+ALTER TABLE pending_investors ENABLE ROW LEVEL SECURITY;
+
+-- Pending Investors RLS
+CREATE POLICY "Agents can view their own pending investors" ON pending_investors
+  FOR SELECT USING (agent_id = auth.uid());
+
+CREATE POLICY "Agents can insert their own pending investors" ON pending_investors
+  FOR INSERT WITH CHECK (agent_id = auth.uid());
+
+CREATE POLICY "Agents can update their own pending investors" ON pending_investors
+  FOR UPDATE USING (agent_id = auth.uid());
+
+CREATE POLICY "Agents can delete their own pending investors" ON pending_investors
+  FOR DELETE USING (agent_id = auth.uid());
+
+CREATE POLICY "Admins can view all pending investors" ON pending_investors
+  FOR SELECT USING (auth.jwt() ->> 'role' = 'admin'); 

@@ -31,20 +31,50 @@ export default function InviteInvestorModal({ isOpen, onClose, onInviteSuccess }
         throw new Error('You must be logged in to create invitations');
       }
       
-      // Generate a unique invitation code
+      console.log('Creating invitation code for agent:', user.id);
+      
+      // Generate a unique invitation code - ensure it's uppercase
+      const invitationCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+      console.log('Generated invitation code:', invitationCode);
+      
       const { data: invitationData, error: invitationError } = await supabase
         .from('invitation_codes')
         .insert({
-          code: Math.random().toString(36).substring(2, 10).toUpperCase(), // Generate random code
+          code: invitationCode,
           agent_id: user.id
         })
-        .select('code')
+        .select('code, agent_id')
         .single();
       
-      if (invitationError) throw invitationError;
+      if (invitationError) {
+        console.error('Error creating invitation code:', invitationError);
+        throw invitationError;
+      }
+      
+      console.log('Invitation code created successfully:', invitationData);
+      
+      // Create a pending investor record
+      const { data: pendingInvestor, error: pendingInvestorError } = await supabase
+        .from('pending_investors')
+        .insert({
+          name: investorName,
+          email: investorEmail,
+          invitation_code: invitationCode,
+          agent_id: user.id,
+          created_at: new Date().toISOString()
+        })
+        .select('*')
+        .single();
+        
+      if (pendingInvestorError) {
+        console.error('Error creating pending investor:', pendingInvestorError);
+        // Don't throw here, we still want to show the invitation code
+        // Just log the error
+      } else {
+        console.log('Pending investor created:', pendingInvestor);
+      }
       
       setInviteCode(invitationData.code);
-      onInviteSuccess();
       
       // In a real app, you would send an email to the investor with the invitation code
       // For now, we'll just display the code in the UI
@@ -75,14 +105,30 @@ export default function InviteInvestorModal({ isOpen, onClose, onInviteSuccess }
           <div className="text-center py-4">
             <h3 className="text-lg font-medium mb-2">Invitation Created!</h3>
             <p className="mb-4">Share this code with your investor:</p>
-            <div className="bg-gray-100 p-4 rounded-md text-center mb-4">
+            <div className="bg-gray-100 p-4 rounded-md text-center mb-4 relative">
               <span className="text-xl font-mono font-bold tracking-wider">{inviteCode}</span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(inviteCode || '');
+                  // You could add a toast notification here
+                  alert('Invitation code copied to clipboard!');
+                }}
+                className="absolute right-2 top-2 text-blue-600 hover:text-blue-800"
+                title="Copy to clipboard"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                </svg>
+              </button>
             </div>
             <p className="text-sm text-gray-600 mb-4">
               This code will expire in 30 days. The investor can use it to register on Fund Connect.
             </p>
             <button
-              onClick={onClose}
+              onClick={() => {
+                onInviteSuccess();
+                onClose();
+              }}
               className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition w-full"
             >
               Done

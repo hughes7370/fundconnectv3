@@ -52,6 +52,20 @@ type Interest = {
   fund: Fund;
 };
 
+type SavedSearch = {
+  id: string;
+  name: string;
+  criteria: {
+    strategy?: string;
+    minSize?: string;
+    maxSize?: string;
+    geography?: string;
+    sector?: string;
+  };
+  created_at: string;
+  alerts_enabled: boolean;
+};
+
 export default function InvestorProfilePage() {
   const params = useParams();
   const investorId = params?.id as string;
@@ -59,6 +73,7 @@ export default function InvestorProfilePage() {
   const [loading, setLoading] = useState(true);
   const [investor, setInvestor] = useState<InvestorProfile | null>(null);
   const [interests, setInterests] = useState<Interest[]>([]);
+  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
@@ -99,6 +114,7 @@ export default function InvestorProfilePage() {
         
         setInvestor(mockInvestor);
         setInterests([]);
+        setSavedSearches([]);
         setLoading(false);
         return;
       }
@@ -192,39 +208,24 @@ export default function InvestorProfilePage() {
         }
       }
       
-      // Get investor profile with introducing agent info
-      const { data, error: investorError } = await supabase
+      // Fetch the investor profile with agent information
+      const { data: investorData, error: investorError } = await supabase
         .from('investors')
         .select(`
-          user_id,
-          name,
-          introducing_agent_id,
-          approved
+          *,
+          agent:introducing_agent_id (
+            name,
+            firm
+          )
         `)
         .eq('user_id', actualInvestorId)
         .single();
         
       if (investorError) {
         console.error('Error fetching investor:', investorError);
-        setError(`Error fetching investor: ${investorError.message}`);
+        setError('Investor not found');
         setLoading(false);
         return;
-      }
-      
-      // If there's an introducing agent, get their info
-      let agentInfo = null;
-      if (data.introducing_agent_id) {
-        const { data: agentData, error: agentError } = await supabase
-          .from('agents')
-          .select('name, firm')
-          .eq('user_id', data.introducing_agent_id)
-          .single();
-          
-        if (!agentError && agentData) {
-          agentInfo = agentData;
-        } else if (agentError) {
-          console.error('Error fetching agent:', agentError);
-        }
       }
       
       // Get the profile information from the profiles table
@@ -232,27 +233,25 @@ export default function InvestorProfilePage() {
         .from('profiles')
         .select('*')
         .eq('id', actualInvestorId)
-        .maybeSingle();
+        .single();
         
       if (profileError && profileError.code !== 'PGRST116') {
         console.error('Error fetching profile:', profileError);
       }
       
-      console.log('Profile data:', profileData);
-      
-      const investorData: InvestorProfile = {
-        user_id: data.user_id,
-        name: data.name,
-        introducing_agent_id: data.introducing_agent_id,
-        approved: data.approved,
-        agent: agentInfo,
+      // Create the investor object with all the data
+      const investor: InvestorProfile = {
+        user_id: investorData.user_id,
+        name: investorData.name,
+        introducing_agent_id: investorData.introducing_agent_id,
+        approved: investorData.approved,
+        agent: investorData.agent,
         profile: profileData || null
       };
       
-      console.log('Investor data loaded:', investorData);
-      setInvestor(investorData);
+      setInvestor(investor);
       
-      // Get interests for this investor in funds uploaded by the current agent
+      // Get interests for this investor
       const { data: fundsData, error: fundsError } = await supabase
         .from('funds')
         .select('id')
@@ -272,14 +271,11 @@ export default function InvestorProfilePage() {
       
       const fundIds = fundsData.map(fund => fund.id);
       
-      // Get interests for this investor in the agent's funds
+      // Fetch interests for this investor
       const { data: interestsData, error: interestsError } = await supabase
         .from('interests')
         .select(`
-          id,
-          timestamp,
-          fund_id,
-          investor_id,
+          *,
           fund:fund_id (
             id,
             name,
@@ -292,8 +288,7 @@ export default function InvestorProfilePage() {
           )
         `)
         .eq('investor_id', actualInvestorId)
-        .in('fund_id', fundIds)
-        .order('timestamp', { ascending: false });
+        .in('fund_id', fundIds);
         
       if (interestsError) {
         console.error('Error fetching interests:', interestsError);
@@ -335,6 +330,20 @@ export default function InvestorProfilePage() {
         setInterests(processedInterests);
       }
       
+      // Fetch saved searches for this investor
+      const { data: searchesData, error: searchesError } = await supabase
+        .from('saved_searches')
+        .select('*')
+        .eq('investor_id', actualInvestorId)
+        .order('created_at', { ascending: false });
+        
+      if (searchesError) {
+        console.error('Error fetching saved searches:', searchesError);
+      } else {
+        console.log('Saved searches loaded:', searchesData);
+        setSavedSearches(searchesData || []);
+      }
+      
       setLoading(false);
     } catch (error: any) {
       console.error('Error loading investor profile:', error);
@@ -360,6 +369,19 @@ export default function InvestorProfilePage() {
       month: 'long',
       day: 'numeric',
     });
+  };
+
+  // Add this function to format search criteria
+  const formatCriteria = (criteria: SavedSearch['criteria']) => {
+    const parts = [];
+    
+    if (criteria.strategy) parts.push(`Strategy: ${criteria.strategy}`);
+    if (criteria.minSize) parts.push(`Min Size: $${criteria.minSize}M`);
+    if (criteria.maxSize) parts.push(`Max Size: $${criteria.maxSize}M`);
+    if (criteria.geography) parts.push(`Geography: ${criteria.geography}`);
+    if (criteria.sector) parts.push(`Sector: ${criteria.sector}`);
+    
+    return parts.join(' • ') || 'No filters applied';
   };
 
   if (loading) {
@@ -529,61 +551,91 @@ export default function InvestorProfilePage() {
                   </dd>
                 </div>
               )}
-              
-              {/* Only show the Interests count if there are interests */}
-              {interests.length > 0 && (
-                <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">Interests in Your Funds</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {interests.length} fund{interests.length !== 1 ? 's' : ''}
-                  </dd>
-                </div>
-              )}
             </dl>
           </div>
         </div>
 
-        {/* Only show the Fund Interests section if there are interests */}
-        {interests.length > 0 && (
-          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div className="px-4 py-5 sm:px-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">Fund Interests</h3>
-              <p className="mt-1 max-w-2xl text-sm text-gray-500">Funds this investor has expressed interest in</p>
-            </div>
-            <div className="border-t border-gray-200">
-              <ul className="divide-y divide-gray-200">
-                {interests.map((interest) => (
-                  <li key={interest.id} className="px-4 py-4 sm:px-6 hover:bg-gray-50">
-                    <Link href={`/agent/funds/${interest.fund_id}`} className="block">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-primary truncate">{interest.fund.name}</p>
-                          <div className="mt-2 flex">
-                            <p className="flex items-center text-sm text-gray-500 mr-6">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                              </svg>
-                              {formatCurrency(interest.fund.size)}
-                            </p>
-                            <p className="flex items-center text-sm text-gray-500">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                              </svg>
-                              {interest.fund.strategy}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {formatDate(interest.timestamp)}
-                        </div>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
+        {/* Interests Section */}
+        <div className="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+          <div className="px-4 py-5 sm:px-6">
+            <h3 className="text-lg leading-6 font-medium text-gray-900">Fund Interests</h3>
+            <p className="mt-1 max-w-2xl text-sm text-gray-500">Funds this investor has expressed interest in</p>
           </div>
-        )}
+          <div className="border-t border-gray-200">
+            {interests.length === 0 ? (
+              <div className="px-4 py-5 sm:px-6 text-center text-gray-500">
+                No interests found
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fund Name</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Strategy</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Min Investment</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {interests.map((interest) => (
+                      <tr key={interest.id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary">{interest.fund.name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{interest.fund.strategy}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatCurrency(interest.fund.size)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatCurrency(interest.fund.minimum_investment)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(interest.timestamp)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Saved Searches Section */}
+        <div className="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+          <div className="px-4 py-5 sm:px-6">
+            <h3 className="text-lg leading-6 font-medium text-gray-900">Saved Searches</h3>
+            <p className="mt-1 max-w-2xl text-sm text-gray-500">Fund search criteria saved by this investor</p>
+          </div>
+          <div className="border-t border-gray-200">
+            {savedSearches.length === 0 ? (
+              <div className="px-4 py-5 sm:px-6 text-center text-gray-500">
+                No saved searches found
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Search Name</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Criteria</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alerts</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {savedSearches.map((search) => (
+                      <tr key={search.id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary">{search.name}</td>
+                        <td className="px-6 py-4 text-sm text-gray-500">{formatCriteria(search.criteria)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(search.created_at)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${search.alerts_enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                            {search.alerts_enabled ? 'Enabled' : 'Disabled'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );

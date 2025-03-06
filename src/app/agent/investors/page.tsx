@@ -28,13 +28,20 @@ export default function InvestorsPage() {
           return;
         }
         
+        console.log('Loading investors for agent:', session.user.id);
+        
         // Fetch investors associated with this agent
         const { data, error } = await supabase
           .from('investors')
           .select('*')
           .eq('introducing_agent_id', session.user.id);
           
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching investors:', error);
+          throw error;
+        }
+        
+        console.log('Investors found:', data?.length || 0, data);
         
         setInvestors(data || []);
       } catch (error) {
