@@ -19,6 +19,13 @@ type FundFormInputs = {
   team_background: string;
   management_fee: number;
   carry: number;
+  description: string;
+  investment_strategy: string;
+  target_return: number | null;
+  fund_manager: string;
+  fund_manager_bio: string;
+  fund_website: string;
+  fund_logo_url: string;
 };
 
 export default function UploadFund() {
@@ -413,6 +420,129 @@ export default function UploadFund() {
                             Upload a pitch deck or other fund document. Max file size: 10MB.
                           </p>
                         </div>
+                      </div>
+
+                      {/* Fund Description */}
+                      <div className="col-span-6">
+                        <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                          Fund Description
+                        </label>
+                        <textarea
+                          id="description"
+                          rows={4}
+                          className={`mt-1 block w-full rounded-md border ${errors.description ? 'border-red-500' : 'border-gray-300'} shadow-sm focus:border-primary focus:ring-primary sm:text-sm`}
+                          placeholder="Provide a detailed description of the fund, its objectives, and investment philosophy."
+                          {...register('description')}
+                        />
+                        {errors.description && (
+                          <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
+                        )}
+                      </div>
+
+                      {/* Investment Strategy */}
+                      <div className="col-span-6">
+                        <label htmlFor="investment_strategy" className="block text-sm font-medium text-gray-700">
+                          Detailed Investment Strategy
+                        </label>
+                        <textarea
+                          id="investment_strategy"
+                          rows={3}
+                          className={`mt-1 block w-full rounded-md border ${errors.investment_strategy ? 'border-red-500' : 'border-gray-300'} shadow-sm focus:border-primary focus:ring-primary sm:text-sm`}
+                          placeholder="Explain the fund's investment strategy in detail."
+                          {...register('investment_strategy')}
+                        />
+                        {errors.investment_strategy && (
+                          <p className="mt-1 text-sm text-red-600">{errors.investment_strategy.message}</p>
+                        )}
+                      </div>
+
+                      {/* Target Return */}
+                      <div className="col-span-6 sm:col-span-3">
+                        <label htmlFor="target_return" className="block text-sm font-medium text-gray-700">
+                          Target Return (%)
+                        </label>
+                        <input
+                          type="number"
+                          id="target_return"
+                          step="0.1"
+                          className={`mt-1 block w-full rounded-md border ${errors.target_return ? 'border-red-500' : 'border-gray-300'} shadow-sm focus:border-primary focus:ring-primary sm:text-sm`}
+                          placeholder="15.0"
+                          {...register('target_return', { valueAsNumber: true })}
+                        />
+                        {errors.target_return && (
+                          <p className="mt-1 text-sm text-red-600">{errors.target_return.message}</p>
+                        )}
+                      </div>
+
+                      {/* Fund Manager */}
+                      <div className="col-span-6 sm:col-span-3">
+                        <label htmlFor="fund_manager" className="block text-sm font-medium text-gray-700">
+                          Fund Manager Name
+                        </label>
+                        <input
+                          type="text"
+                          id="fund_manager"
+                          className={`mt-1 block w-full rounded-md border ${errors.fund_manager ? 'border-red-500' : 'border-gray-300'} shadow-sm focus:border-primary focus:ring-primary sm:text-sm`}
+                          placeholder="John Smith"
+                          {...register('fund_manager')}
+                        />
+                        {errors.fund_manager && (
+                          <p className="mt-1 text-sm text-red-600">{errors.fund_manager.message}</p>
+                        )}
+                      </div>
+
+                      {/* Fund Manager Bio */}
+                      <div className="col-span-6">
+                        <label htmlFor="fund_manager_bio" className="block text-sm font-medium text-gray-700">
+                          Fund Manager Bio
+                        </label>
+                        <textarea
+                          id="fund_manager_bio"
+                          rows={3}
+                          className={`mt-1 block w-full rounded-md border ${errors.fund_manager_bio ? 'border-red-500' : 'border-gray-300'} shadow-sm focus:border-primary focus:ring-primary sm:text-sm`}
+                          placeholder="Brief biography of the fund manager, including experience and credentials."
+                          {...register('fund_manager_bio')}
+                        />
+                        {errors.fund_manager_bio && (
+                          <p className="mt-1 text-sm text-red-600">{errors.fund_manager_bio.message}</p>
+                        )}
+                      </div>
+
+                      {/* Fund Website */}
+                      <div className="col-span-6">
+                        <label htmlFor="fund_website" className="block text-sm font-medium text-gray-700">
+                          Fund Website
+                        </label>
+                        <input
+                          type="url"
+                          id="fund_website"
+                          className={`mt-1 block w-full rounded-md border ${errors.fund_website ? 'border-red-500' : 'border-gray-300'} shadow-sm focus:border-primary focus:ring-primary sm:text-sm`}
+                          placeholder="https://example.com"
+                          {...register('fund_website')}
+                        />
+                        {errors.fund_website && (
+                          <p className="mt-1 text-sm text-red-600">{errors.fund_website.message}</p>
+                        )}
+                      </div>
+
+                      {/* Fund Logo URL */}
+                      <div className="col-span-6">
+                        <label htmlFor="fund_logo_url" className="block text-sm font-medium text-gray-700">
+                          Fund Logo URL
+                        </label>
+                        <input
+                          type="url"
+                          id="fund_logo_url"
+                          className={`mt-1 block w-full rounded-md border ${errors.fund_logo_url ? 'border-red-500' : 'border-gray-300'} shadow-sm focus:border-primary focus:ring-primary sm:text-sm`}
+                          placeholder="https://example.com/logo.png"
+                          {...register('fund_logo_url')}
+                        />
+                        <p className="mt-1 text-xs text-gray-500">
+                          Enter a URL to your fund's logo. You can upload images to services like Imgur or use your own hosting.
+                        </p>
+                        {errors.fund_logo_url && (
+                          <p className="mt-1 text-sm text-red-600">{errors.fund_logo_url.message}</p>
+                        )}
                       </div>
                     </div>
                   </div>

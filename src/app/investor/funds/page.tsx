@@ -16,6 +16,9 @@ type Fund = {
   geography: string;
   agent_name: string;
   agent_firm: string;
+  description: string | null;
+  fund_logo_url: string | null;
+  target_return: number | null;
 };
 
 type FilterState = {
@@ -46,6 +49,9 @@ export default function InvestorFunds() {
   const [geographies, setGeographies] = useState<string[]>([]);
   const [sectors, setSectors] = useState<string[]>([]);
   
+  const [selectedFund, setSelectedFund] = useState<Fund | null>(null);
+  const [showQuickView, setShowQuickView] = useState(false);
+  
   useEffect(() => {
     const loadFunds = async () => {
       try {
@@ -56,48 +62,99 @@ export default function InvestorFunds() {
           return;
         }
         
-        // Build query
-        let query = supabase
-          .from('funds')
-          .select(`
-            id,
-            name,
-            size,
-            minimum_investment,
-            strategy,
-            sector_focus,
-            geography,
-            agents:uploaded_by_agent_id(name, firm)
-          `);
-        
-        // Apply filters
-        if (filters.strategy) {
-          query = query.eq('strategy', filters.strategy);
+        // Check if the new columns exist by trying to select them
+        // This will be caught in the error handler if they don't exist
+        try {
+          const { data: testData, error: testError } = await supabase
+            .from('funds')
+            .select('description, fund_logo_url, target_return')
+            .limit(1);
+          
+          // If we get here, the columns exist
+          console.log('Enhanced fund profile columns exist');
+          
+          // Build query with all columns
+          let query = supabase
+            .from('funds')
+            .select(`
+              id,
+              name,
+              size,
+              minimum_investment,
+              strategy,
+              sector_focus,
+              geography,
+              description,
+              fund_logo_url,
+              target_return,
+              agents:uploaded_by_agent_id(name, firm)
+            `);
+          
+          // Apply filters and execute query
+          applyFiltersAndExecuteQuery(query);
+        } catch (columnError) {
+          console.log('Enhanced fund profile columns do not exist yet, using basic query');
+          
+          // Build query with only the original columns
+          let query = supabase
+            .from('funds')
+            .select(`
+              id,
+              name,
+              size,
+              minimum_investment,
+              strategy,
+              sector_focus,
+              geography,
+              agents:uploaded_by_agent_id(name, firm)
+            `);
+          
+          // Apply filters and execute query
+          applyFiltersAndExecuteQuery(query);
         }
+      } catch (error: any) {
+        console.error('Error loading funds:', error);
+        setError(error.message || 'An error occurred while loading funds');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    const applyFiltersAndExecuteQuery = async (query: any) => {
+      // Apply filters
+      if (filters.strategy) {
+        query = query.eq('strategy', filters.strategy);
+      }
+      
+      if (filters.geography) {
+        query = query.ilike('geography', `%${filters.geography}%`);
+      }
+      
+      if (filters.sector) {
+        query = query.ilike('sector_focus', `%${filters.sector}%`);
+      }
+      
+      if (filters.minSize) {
+        query = query.gte('size', parseInt(filters.minSize) * 1000000); // Convert to millions
+      }
+      
+      if (filters.maxSize) {
+        query = query.lte('size', parseInt(filters.maxSize) * 1000000); // Convert to millions
+      }
+      
+      // Execute query
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      
+      // Format results
+      const formattedFunds = (data || []).map((fund: any) => {
+        const agentData = Array.isArray(fund.agents) ? fund.agents[0] : fund.agents;
         
-        if (filters.geography) {
-          query = query.ilike('geography', `%${filters.geography}%`);
-        }
+        // Use type assertion to handle potentially missing fields
+        const fundData = fund as any;
         
-        if (filters.sector) {
-          query = query.ilike('sector_focus', `%${filters.sector}%`);
-        }
-        
-        if (filters.minSize) {
-          query = query.gte('size', parseInt(filters.minSize) * 1000000); // Convert to millions
-        }
-        
-        if (filters.maxSize) {
-          query = query.lte('size', parseInt(filters.maxSize) * 1000000); // Convert to millions
-        }
-        
-        // Execute query
-        const { data, error } = await query;
-        
-        if (error) throw error;
-        
-        // Format results
-        const formattedFunds = (data || []).map((fund) => ({
+        return {
           id: fund.id,
           name: fund.name,
           size: fund.size,
@@ -105,20 +162,19 @@ export default function InvestorFunds() {
           strategy: fund.strategy,
           sector_focus: fund.sector_focus,
           geography: fund.geography,
-          agent_name: fund.agents?.name || 'Unknown',
-          agent_firm: fund.agents?.firm || 'Unknown',
-        }));
-        
-        setFunds(formattedFunds);
-        
-        // Load filter options (for dropdowns)
-        await loadFilterOptions();
-      } catch (error: any) {
-        console.error('Error loading funds:', error);
-        setError(error.message || 'An error occurred while loading funds');
-      } finally {
-        setLoading(false);
-      }
+          // Use null for fields that might not exist yet
+          description: fundData.description || null,
+          fund_logo_url: fundData.fund_logo_url || null,
+          target_return: fundData.target_return || null,
+          agent_name: agentData?.name || 'Unknown',
+          agent_firm: agentData?.firm || 'Unknown',
+        };
+      });
+      
+      setFunds(formattedFunds);
+      
+      // Load filter options (for dropdowns)
+      await loadFilterOptions();
     };
     
     const loadFilterOptions = async () => {
@@ -199,9 +255,36 @@ export default function InvestorFunds() {
     router.push(`/investor/funds?${params.toString()}`);
   };
 
-  const handleSaveSearch = () => {
-    // This would save the current search criteria for the investor
-    alert('Search saved! This feature will be implemented soon.');
+  const handleSaveSearch = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        router.push('/auth/login');
+        return;
+      }
+      
+      // Create a modal to get the search name
+      const searchName = prompt('Enter a name for this search:');
+      
+      if (!searchName) return; // User cancelled
+      
+      const { error } = await supabase
+        .from('saved_searches')
+        .insert({
+          investor_id: session.user.id,
+          name: searchName,
+          criteria: filters,
+          alerts_enabled: false
+        });
+        
+      if (error) throw error;
+      
+      alert('Search saved successfully!');
+    } catch (error) {
+      console.error('Error saving search:', error);
+      alert('Failed to save search');
+    }
   };
 
   const handleClearFilters = () => {
@@ -214,6 +297,133 @@ export default function InvestorFunds() {
     });
     
     router.push('/investor/funds');
+  };
+
+  const handleQuickView = (fund: Fund) => {
+    setSelectedFund(fund);
+    setShowQuickView(true);
+  };
+
+  const handleCloseQuickView = () => {
+    setShowQuickView(false);
+    setTimeout(() => {
+      setSelectedFund(null);
+    }, 300);
+  };
+
+  const renderQuickViewModal = () => {
+    if (!selectedFund) return null;
+    
+    return (
+      <div className={`fixed inset-0 z-50 overflow-y-auto ${showQuickView ? 'opacity-100' : 'opacity-0 pointer-events-none'} transition-opacity duration-300`}>
+        <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+          <div 
+            className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+            onClick={handleCloseQuickView}
+          ></div>
+
+          <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+          <div className={`inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full ${showQuickView ? 'sm:scale-100' : 'sm:scale-95'}`}>
+            <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+              <div className="sm:flex sm:items-start">
+                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center">
+                      {selectedFund.fund_logo_url ? (
+                        <img 
+                          src={selectedFund.fund_logo_url} 
+                          alt={`${selectedFund.name} logo`} 
+                          className="h-12 w-12 object-contain mr-3 rounded-md"
+                        />
+                      ) : (
+                        <div className="h-12 w-12 bg-gray-200 rounded-md flex items-center justify-center mr-3">
+                          <span className="text-sm font-medium text-gray-500">
+                            {selectedFund.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <h3 className="text-lg leading-6 font-medium text-gray-900">
+                        {selectedFund.name}
+                      </h3>
+                    </div>
+                    <button
+                      type="button"
+                      className="bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-none"
+                      onClick={handleCloseQuickView}
+                    >
+                      <span className="sr-only">Close</span>
+                      <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  {selectedFund.description && (
+                    <div className="mt-4">
+                      <p className="text-sm text-gray-500">
+                        {selectedFund.description}
+                      </p>
+                    </div>
+                  )}
+                  
+                  <div className="mt-4 grid grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500">Size</h4>
+                      <p className="text-sm text-gray-900">{formatCurrency(selectedFund.size)}</p>
+                      <p className="text-xs text-gray-500">Min: {formatCurrency(selectedFund.minimum_investment)}</p>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500">Strategy</h4>
+                      <p className="text-sm text-gray-900">{selectedFund.strategy}</p>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500">Sector</h4>
+                      <p className="text-sm text-gray-900">{selectedFund.sector_focus}</p>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500">Geography</h4>
+                      <p className="text-sm text-gray-900">{selectedFund.geography}</p>
+                    </div>
+                    
+                    {selectedFund.target_return && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-500">Target Return</h4>
+                        <p className="text-sm text-green-600 font-medium">{selectedFund.target_return}%</p>
+                      </div>
+                    )}
+                    
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500">Manager</h4>
+                      <p className="text-sm text-gray-900">{selectedFund.agent_name}</p>
+                      <p className="text-xs text-gray-500">{selectedFund.agent_firm}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <Link
+                href={`/investor/funds/${selectedFund.id}`}
+                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary text-base font-medium text-white hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:ml-3 sm:w-auto sm:text-sm"
+              >
+                View Full Details
+              </Link>
+              <button
+                type="button"
+                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                onClick={handleCloseQuickView}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -434,13 +644,42 @@ export default function InvestorFunds() {
                             {funds.map((fund, idx) => (
                               <tr key={fund.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                  {fund.name}
+                                  <div className="flex items-center">
+                                    {fund.fund_logo_url ? (
+                                      <img 
+                                        src={fund.fund_logo_url} 
+                                        alt={`${fund.name} logo`} 
+                                        className="h-10 w-10 object-contain mr-3 rounded-md"
+                                      />
+                                    ) : (
+                                      <div className="h-10 w-10 bg-gray-200 rounded-md flex items-center justify-center mr-3">
+                                        <span className="text-xs font-medium text-gray-500">
+                                          {fund.name.charAt(0).toUpperCase()}
+                                        </span>
+                                      </div>
+                                    )}
+                                    <div>
+                                      <Link href={`/investor/funds/${fund.id}`} className="text-primary hover:text-primary-dark hover:underline">
+                                        {fund.name}
+                                      </Link>
+                                      {fund.description && (
+                                        <p className="text-xs text-gray-500 mt-1 truncate max-w-xs">
+                                          {fund.description.length > 60 ? `${fund.description.substring(0, 60)}...` : fund.description}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                   {formatCurrency(fund.size)}
                                   <div className="text-xs text-gray-400">
                                     Min: {formatCurrency(fund.minimum_investment)}
                                   </div>
+                                  {fund.target_return && (
+                                    <div className="text-xs text-green-600 font-medium mt-1">
+                                      Target: {fund.target_return}%
+                                    </div>
+                                  )}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                   {fund.strategy}
@@ -458,9 +697,20 @@ export default function InvestorFunds() {
                                   </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                  <Link href={`/investor/funds/${fund.id}`} className="text-primary hover:text-primary-dark">
-                                    View
-                                  </Link>
+                                  <div className="flex flex-col space-y-2 items-end">
+                                    <button
+                                      onClick={() => handleQuickView(fund)}
+                                      className="text-gray-600 hover:text-gray-900 text-xs"
+                                    >
+                                      Quick View
+                                    </button>
+                                    <Link 
+                                      href={`/investor/funds/${fund.id}`} 
+                                      className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                                    >
+                                      View Details
+                                    </Link>
+                                  </div>
                                 </td>
                               </tr>
                             ))}
@@ -474,6 +724,8 @@ export default function InvestorFunds() {
             )}
           </div>
         </div>
+        
+        {renderQuickViewModal()}
       </div>
     </DashboardLayout>
   );
