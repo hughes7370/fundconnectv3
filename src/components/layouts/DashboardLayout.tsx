@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
 import StorageInitializer from '@/components/StorageInitializer';
+import Image from 'next/image';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -15,8 +16,10 @@ type UserRole = 'agent' | 'investor' | 'admin' | null;
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [userName, setUserName] = useState<string | null>(null);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -35,6 +38,24 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       
       setUserRole(role);
       setUserName(name);
+      
+      // Try to get profile data including avatar
+      try {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('id', session.user.id)
+          .single();
+          
+        if (!error && profile && profile.avatar_url) {
+          console.log('Found profile avatar:', profile.avatar_url);
+          setUserAvatar(profile.avatar_url);
+        } else if (error) {
+          console.warn('Error fetching profile:', error.message);
+        }
+      } catch (err) {
+        console.error('Error fetching user profile:', err);
+      }
     };
     
     getUserData();
@@ -111,6 +132,32 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     );
   }
 
+  // Helper function to render avatar
+  const renderAvatar = (size: 'sm' | 'md' = 'md') => {
+    const sizeClass = size === 'sm' ? 'h-8 w-8' : 'h-10 w-10';
+    
+    if (userAvatar && !imageError) {
+      return (
+        <div className={`${sizeClass} rounded-full overflow-hidden relative`}>
+          <Image 
+            src={userAvatar} 
+            alt={userName || 'User'} 
+            fill 
+            className="object-cover"
+            onError={() => setImageError(true)}
+            unoptimized={true}
+          />
+        </div>
+      );
+    }
+    
+    return (
+      <div className={`${sizeClass} rounded-full bg-secondary flex items-center justify-center text-white shadow-sm`}>
+        {userName ? userName.charAt(0).toUpperCase() : 'U'}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <StorageInitializer />
@@ -151,9 +198,37 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="group block w-full flex-shrink-0">
               <div className="flex items-center">
                 <div>
-                  <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center text-white shadow-sm">
-                    {userName ? userName.charAt(0).toUpperCase() : 'U'}
-                  </div>
+                  <button
+                    onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                    className="focus:outline-none"
+                  >
+                    {renderAvatar()}
+                  </button>
+                  
+                  {isProfileDropdownOpen && (
+                    <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 z-50">
+                      <div className="px-4 py-2 text-xs text-gray-500 border-b border-gray-100">
+                        <div>{userName || 'User'}</div>
+                        <div className="capitalize">{userRole || 'loading...'}</div>
+                      </div>
+                      <Link
+                        href="/dashboard/profile"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setIsProfileDropdownOpen(false)}
+                      >
+                        Your Profile
+                      </Link>
+                      <button
+                        onClick={() => {
+                          setIsProfileDropdownOpen(false);
+                          handleSignOut();
+                        }}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        Sign out
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="ml-3">
                   <p className="text-sm font-medium text-white">{userName || 'User'}</p>
@@ -285,9 +360,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
                 >
                   <span className="sr-only">Open user menu</span>
-                  <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center text-white shadow-sm">
-                    {userName ? userName.charAt(0).toUpperCase() : 'U'}
-                  </div>
+                  {renderAvatar('sm')}
                 </button>
               </div>
               {isProfileDropdownOpen && (
@@ -322,6 +395,48 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Main content */}
       <div className="md:pl-64 flex flex-col flex-1">
         <main className="flex-1">
+          {/* Desktop top bar */}
+          <div className="hidden md:flex items-center justify-end bg-white border-b border-gray-200 p-4 shadow-sm">
+            <div className="relative">
+              <button
+                type="button"
+                className="flex items-center space-x-3 focus:outline-none"
+                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+              >
+                <span className="text-sm text-gray-700">{userName || 'User'}</span>
+                {renderAvatar('sm')}
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+              
+              {isProfileDropdownOpen && (
+                <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 z-50">
+                  <div className="px-4 py-2 text-xs text-gray-500 border-b border-gray-100">
+                    <div>{userName || 'User'}</div>
+                    <div className="capitalize">{userRole || 'loading...'}</div>
+                  </div>
+                  <Link
+                    href="/dashboard/profile"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsProfileDropdownOpen(false)}
+                  >
+                    Your Profile
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setIsProfileDropdownOpen(false);
+                      handleSignOut();
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+          
           <div className="py-6 px-4">
             {children}
           </div>

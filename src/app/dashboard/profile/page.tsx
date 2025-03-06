@@ -27,29 +27,109 @@ export default function ProfilePage() {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session) {
+          console.log('No session found, redirecting to login');
           router.push('/auth/login');
           return;
         }
         
-        // Get user profile data
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-          
-        if (profileError && profileError.code !== 'PGRST116') {
-          console.error('Error fetching profile:', profileError);
-          throw profileError;
-        }
+        console.log('Session found, user ID:', session.user.id);
+        console.log('User metadata:', session.user.user_metadata);
         
-        // Combine auth data with profile data
-        setUserData({
-          id: session.user.id,
-          email: session.user.email,
-          ...session.user.user_metadata,
-          ...profile
-        });
+        // Check if profiles table exists by trying to select from it
+        try {
+          // Get user profile data
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+            
+          if (profileError) {
+            if (profileError.code === 'PGRST116') {
+              console.log('Profile not found, will create one');
+              
+              // Try to create a profile
+              const { data: newProfile, error: insertError } = await supabase
+                .from('profiles')
+                .insert([{ 
+                  id: session.user.id,
+                  name: session.user.user_metadata?.name || '',
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                }])
+                .select();
+                
+              if (insertError) {
+                console.error('Error creating profile:', insertError);
+                throw insertError;
+              }
+              
+              console.log('Created new profile:', newProfile);
+              
+              // Combine auth data with new profile data
+              setUserData({
+                id: session.user.id,
+                email: session.user.email,
+                ...session.user.user_metadata,
+                ...newProfile[0]
+              });
+            } else {
+              console.error('Error fetching profile:', profileError);
+              throw profileError;
+            }
+          } else {
+            console.log('Profile found:', profile);
+            
+            // Combine auth data with profile data
+            setUserData({
+              id: session.user.id,
+              email: session.user.email,
+              ...session.user.user_metadata,
+              ...profile
+            });
+          }
+        } catch (tableError) {
+          console.error('Error with profiles table:', tableError);
+          
+          // If the profiles table doesn't exist, just use the auth data
+          setUserData({
+            id: session.user.id,
+            email: session.user.email,
+            ...session.user.user_metadata
+          });
+          
+          // Try to create the profiles table
+          try {
+            console.log('Attempting to create profiles table...');
+            
+            // Execute the migration SQL
+            const { error } = await supabase.rpc('create_profiles_table');
+            
+            if (error) {
+              console.error('Error creating profiles table:', error);
+            } else {
+              console.log('Profiles table created successfully');
+              
+              // Try to create a profile for the user
+              const { error: insertError } = await supabase
+                .from('profiles')
+                .insert([{ 
+                  id: session.user.id,
+                  name: session.user.user_metadata?.name || '',
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                }]);
+                
+              if (insertError) {
+                console.error('Error creating profile after table creation:', insertError);
+              } else {
+                console.log('Profile created successfully after table creation');
+              }
+            }
+          } catch (createTableError) {
+            console.error('Error creating profiles table:', createTableError);
+          }
+        }
       } catch (error) {
         console.error('Error loading profile:', error);
       } finally {

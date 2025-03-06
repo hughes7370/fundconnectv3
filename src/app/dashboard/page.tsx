@@ -17,6 +17,7 @@ export default function Dashboard() {
     activeInterests: 0,
     pendingApprovals: 0,
   });
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showFallback, setShowFallback] = useState(false);
   const router = useRouter();
@@ -87,10 +88,54 @@ export default function Dashboard() {
             
           if (fundsError) throw fundsError;
           
-          // For MVP we'll just count the funds
+          // Get total interests across all funds
+          let totalInterests = 0;
+          let recentInterestActivities: any[] = [];
+          
+          if (funds && funds.length > 0) {
+            // Get fund IDs
+            const fundIds = funds.map(fund => fund.id);
+            
+            // Get interests count
+            const { count, error: interestsCountError } = await supabase
+              .from('interests')
+              .select('*', { count: 'exact', head: true })
+              .in('fund_id', fundIds);
+              
+            if (!interestsCountError) {
+              totalInterests = count || 0;
+              console.log(`Found ${totalInterests} interests across ${funds.length} funds`);
+            } else {
+              console.error('Error getting interests count:', interestsCountError);
+            }
+            
+            // Get recent interests with details
+            const { data: recentInterests, error: recentInterestsError } = await supabase
+              .from('interests')
+              .select(`
+                id,
+                timestamp,
+                investor_id,
+                fund_id,
+                investors(name),
+                funds(name)
+              `)
+              .in('fund_id', fundIds)
+              .order('timestamp', { ascending: false })
+              .limit(5);
+              
+            if (!recentInterestsError && recentInterests && recentInterests.length > 0) {
+              recentInterestActivities = recentInterests;
+              setRecentActivities(recentInterestActivities);
+              console.log(`Found ${recentInterestActivities.length} recent activities`);
+            } else if (recentInterestsError) {
+              console.error('Error getting recent interests:', recentInterestsError);
+            }
+          }
+          
           setStats({
             totalFunds: funds?.length || 0,
-            activeInterests: 0, // We'll implement this later
+            activeInterests: totalInterests,
             pendingApprovals: 0,
           });
         } catch (error: any) {
@@ -164,6 +209,39 @@ export default function Dashboard() {
       console.error('Error in loadStats:', error);
       throw error;
     }
+  };
+
+  const formatTimeAgo = (timestamp: string) => {
+    const now = new Date();
+    const date = new Date(timestamp);
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    let interval = Math.floor(seconds / 31536000);
+    if (interval >= 1) {
+      return interval === 1 ? '1 year ago' : `${interval} years ago`;
+    }
+    
+    interval = Math.floor(seconds / 2592000);
+    if (interval >= 1) {
+      return interval === 1 ? '1 month ago' : `${interval} months ago`;
+    }
+    
+    interval = Math.floor(seconds / 86400);
+    if (interval >= 1) {
+      return interval === 1 ? '1 day ago' : `${interval} days ago`;
+    }
+    
+    interval = Math.floor(seconds / 3600);
+    if (interval >= 1) {
+      return interval === 1 ? '1 hour ago' : `${interval} hours ago`;
+    }
+    
+    interval = Math.floor(seconds / 60);
+    if (interval >= 1) {
+      return interval === 1 ? '1 minute ago' : `${interval} minutes ago`;
+    }
+    
+    return seconds < 10 ? 'just now' : `${Math.floor(seconds)} seconds ago`;
   };
 
   // Fallback UI when database tables are not set up
@@ -325,16 +403,60 @@ export default function Dashboard() {
   const getRoleSpecificContent = () => {
     switch (userRole) {
       case 'agent':
-        return (
-          <div className="text-center py-6">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-            <p className="mt-4 text-gray-500">
-              No recent investor activity to display. As investors express interest in your funds, they will appear here.
-            </p>
-          </div>
-        );
+        if (recentActivities.length === 0) {
+          return (
+            <div className="text-center py-6">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              <p className="mt-4 text-gray-500">
+                No recent investor activity to display. As investors express interest in your funds, they will appear here.
+              </p>
+            </div>
+          );
+        } else {
+          return (
+            <div className="overflow-hidden">
+              <ul className="divide-y divide-gray-200">
+                {recentActivities.map((activity) => (
+                  <li key={activity.id} className="py-4">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex-shrink-0">
+                        <div className="h-10 w-10 rounded-full bg-primary-light flex items-center justify-center text-white">
+                          {activity.investors?.name ? activity.investors.name.charAt(0).toUpperCase() : 'I'}
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {activity.investors?.name || 'Investor'}
+                        </p>
+                        <p className="text-sm text-gray-500 truncate">
+                          Expressed interest in <Link href={`/agent/funds/${activity.fund_id}`} className="font-medium text-primary hover:underline">{activity.funds?.name || 'your fund'}</Link>
+                        </p>
+                      </div>
+                      <div className="flex-shrink-0 text-sm text-gray-500">
+                        {formatTimeAgo(activity.timestamp)}
+                      </div>
+                      <div className="flex-shrink-0">
+                        <Link 
+                          href={`/agent/investors/${activity.investor_id}`}
+                          className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-primary-dark bg-primary-light bg-opacity-10 hover:bg-opacity-20"
+                        >
+                          View Profile
+                        </Link>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-4 text-center">
+                <Link href="/agent/funds" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-dark bg-primary-light bg-opacity-20 hover:bg-opacity-30">
+                  View All Funds
+                </Link>
+              </div>
+            </div>
+          );
+        }
       case 'investor':
         return (
           <div className="text-center py-6">

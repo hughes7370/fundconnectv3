@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/utils/supabase';
 import Image from 'next/image';
 import { ensureProfilePhotosBucket } from '@/utils/setupStorage';
@@ -29,6 +29,29 @@ export default function PersonalInfoForm({ userData, setUserData }: PersonalInfo
     phone: userData.phone || '',
     avatar_url: userData.avatar_url || '',
   });
+  
+  // Add a useEffect to check if the avatar_url is valid
+  useEffect(() => {
+    const checkAvatarUrl = async () => {
+      if (formData.avatar_url) {
+        try {
+          // Try to fetch the image to see if it's valid
+          const response = await fetch(formData.avatar_url, { method: 'HEAD' });
+          if (!response.ok) {
+            console.warn('Avatar URL is not accessible:', formData.avatar_url);
+            setImageError(true);
+          } else {
+            setImageError(false);
+          }
+        } catch (error) {
+          console.error('Error checking avatar URL:', error);
+          setImageError(true);
+        }
+      }
+    };
+    
+    checkAvatarUrl();
+  }, [formData.avatar_url]);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -69,6 +92,9 @@ export default function PersonalInfoForm({ userData, setUserData }: PersonalInfo
     try {
       console.log('Starting file upload to Supabase storage...');
       console.log('File details:', { name: file.name, type: file.type, size: file.size });
+      
+      // First, ensure the bucket exists
+      await ensureProfilePhotosBucket();
       
       // Try multiple upload paths if needed
       let uploadSuccess = false;
@@ -135,8 +161,11 @@ export default function PersonalInfoForm({ userData, setUserData }: PersonalInfo
       // Update profile in database
       const { data: profileData, error: updateError } = await supabase
         .from('profiles')
-        .update({ avatar_url: publicUrl })
-        .eq('id', userData.id)
+        .upsert({ 
+          id: userData.id,
+          avatar_url: publicUrl,
+          updated_at: new Date().toISOString()
+        })
         .select();
         
       if (updateError) {
@@ -159,6 +188,11 @@ export default function PersonalInfoForm({ userData, setUserData }: PersonalInfo
       setTimeout(() => {
         setSuccess(false);
       }, 3000);
+      
+      // Force a page reload to update the avatar in the header
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
       
     } catch (err) {
       console.error('Error uploading file:', err);
@@ -254,8 +288,11 @@ export default function PersonalInfoForm({ userData, setUserData }: PersonalInfo
                   alt="Profile" 
                   fill 
                   className="object-cover"
-                  onError={() => setImageError(true)}
-                  unoptimized={!formData.avatar_url.includes('profile_photos')}
+                  onError={() => {
+                    console.error('Image failed to load:', formData.avatar_url);
+                    setImageError(true);
+                  }}
+                  unoptimized={true}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-500">
