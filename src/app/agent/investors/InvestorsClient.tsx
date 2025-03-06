@@ -139,16 +139,87 @@ export default function InvestorsClient({ investors }: InvestorsClientProps) {
   };
   
   // Handle message investor
-  const handleMessageInvestor = (investor: Investor) => {
+  const handleMessageInvestor = async (investor: Investor) => {
     if (investor.is_pending) {
       alert('This investor has not registered yet. They need to complete registration before you can message them.');
       return;
     }
     
-    // For now, just show an alert
-    alert('Messaging functionality will be implemented soon!');
-    // Later this will navigate to a messaging interface
-    // router.push(`/messages/${investor.user_id}`);
+    try {
+      // Get current user (agent)
+      const { data } = await supabase.auth.getSession();
+      const session = data?.session;
+      
+      if (!session || !session.user) {
+        alert('You need to be logged in to message investors.');
+        return;
+      }
+      
+      const agentId = session.user.id;
+      const investorId = investor.user_id;
+      
+      if (!investorId) {
+        alert('Invalid investor information. Please try again.');
+        return;
+      }
+      
+      console.log('Checking for existing conversation between agent:', agentId, 'and investor:', investorId);
+      
+      // Check for existing conversation
+      const { data: existingConv, error: convError } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('agent_id', agentId)
+        .eq('investor_id', investorId);
+      
+      if (convError) {
+        console.error('Error checking for existing conversation:', convError);
+        alert('Error: ' + convError.message);
+        return;
+      }
+      
+      let conversationId;
+      
+      if (existingConv && existingConv.length > 0) {
+        // Use existing conversation
+        console.log('Found existing conversation:', existingConv[0].id);
+        conversationId = existingConv[0].id;
+      } else {
+        // Create new conversation
+        console.log('Creating new conversation between agent:', agentId, 'and investor:', investorId);
+        const { data: newConv, error: createError } = await supabase
+          .from('conversations')
+          .insert({
+            agent_id: agentId,
+            investor_id: investorId,
+            created_at: new Date().toISOString()
+          })
+          .select('id');
+        
+        if (createError) {
+          console.error('Error creating conversation:', createError);
+          alert('Error: ' + createError.message);
+          return;
+        }
+        
+        if (!newConv || newConv.length === 0) {
+          console.error("No conversation ID returned from insert");
+          alert('Failed to create conversation - no ID returned');
+          return;
+        }
+        
+        console.log('New conversation created:', newConv[0].id);
+        conversationId = newConv[0].id;
+      }
+      
+      // Navigate to the conversation
+      console.log('Navigating to conversation:', conversationId);
+      router.push(`/messages/${conversationId}`);
+      
+    } catch (error) {
+      console.error('Error in message investor:', error);
+      alert('An unexpected error occurred. Please try again.');
+    }
   };
   
   // Handle remove investor
