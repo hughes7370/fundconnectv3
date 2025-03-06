@@ -62,7 +62,7 @@ The following features need to be implemented to complete the MVP:
 - [X] Saved search functionality
 - [ ] Email alerts for matching funds
 - [X] Interest history view
-- [ ] Communication with agents
+- [X] Communication with agents
 
 ### Admin Features
 

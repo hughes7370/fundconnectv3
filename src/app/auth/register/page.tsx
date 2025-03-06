@@ -16,7 +16,7 @@ type UserRole = 'agent' | 'investor';
 
 export default function Register() {
   const searchParams = useSearchParams();
-  const initialRole = (searchParams.get('role') as UserRole) || 'investor';
+  const initialRole = searchParams?.get('role') as UserRole || 'investor';
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,7 +30,7 @@ export default function Register() {
 
   // Update role when URL param changes
   useEffect(() => {
-    const roleParam = searchParams.get('role') as UserRole;
+    const roleParam = searchParams?.get('role') as UserRole;
     if (roleParam && (roleParam === 'agent' || roleParam === 'investor')) {
       setRole(roleParam);
     }
@@ -175,29 +175,63 @@ export default function Register() {
           </p>
         </div>
         
-        <div className="flex justify-center space-x-4">
-          <button
-            type="button"
-            onClick={() => setRole('agent')}
-            className={`px-4 py-2 text-sm font-medium rounded-md ${
-              role === 'agent'
-                ? 'bg-primary text-white'
-                : 'bg-white text-gray-700 border border-gray-300'
-            }`}
-          >
-            Fund Placement Agent
-          </button>
-          <button
-            type="button"
-            onClick={() => setRole('investor')}
-            className={`px-4 py-2 text-sm font-medium rounded-md ${
-              role === 'investor'
-                ? 'bg-secondary text-white'
-                : 'bg-white text-gray-700 border border-gray-300'
-            }`}
-          >
-            Investor (LP)
-          </button>
+        <div className="mb-6">
+          <h3 className="text-center text-lg font-medium text-gray-900 mb-3">
+            Select your account type:
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+            <div 
+              onClick={() => setRole('agent')}
+              className={`cursor-pointer p-6 rounded-lg border-2 ${
+                role === 'agent'
+                  ? 'border-primary bg-primary bg-opacity-10 shadow-md'
+                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 ${
+                  role === 'agent' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h4 className="text-xl font-bold text-gray-900 mb-2">Fund Placement Agent</h4>
+                <p className="text-sm text-gray-600 mb-3">For broker-dealers and placement agents representing funds</p>
+                <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium ${
+                  role === 'agent' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700'
+                }`}>
+                  {role === 'agent' ? 'Selected' : 'Select this option'}
+                </div>
+              </div>
+            </div>
+            
+            <div 
+              onClick={() => setRole('investor')}
+              className={`cursor-pointer p-6 rounded-lg border-2 ${
+                role === 'investor'
+                  ? 'border-secondary bg-secondary bg-opacity-10 shadow-md'
+                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 ${
+                  role === 'investor' ? 'bg-secondary text-white' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h4 className="text-xl font-bold text-gray-900 mb-2">Investor (LP)</h4>
+                <p className="text-sm text-gray-600 mb-3">For limited partners and investors looking to discover funds</p>
+                <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium ${
+                  role === 'investor' ? 'bg-secondary text-white' : 'bg-gray-100 text-gray-700'
+                }`}>
+                  {role === 'investor' ? 'Selected' : 'Select this option'}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         
         <div className="mt-8">
