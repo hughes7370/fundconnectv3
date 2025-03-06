@@ -41,6 +41,7 @@ type Fund = {
       certifications: string | null;
       linkedin_url: string | null;
       website_url: string | null;
+      company: string | null;
     };
   };
   documents: {
@@ -60,6 +61,7 @@ export default function FundDetail() {
   const [error, setError] = useState<string | null>(null);
   const [hasExpressedInterest, setHasExpressedInterest] = useState(false);
   const [expressingInterest, setExpressingInterest] = useState(false);
+  const [showAgentDetails, setShowAgentDetails] = useState(false);
 
   useEffect(() => {
     const loadFund = async () => {
@@ -246,52 +248,10 @@ export default function FundDetail() {
           console.error('Exception creating/updating agent record:', error);
         }
         
-        // Create or update the profile record if it doesn't exist
-        try {
-          console.log('Attempting to create or update profile record');
-          
-          // First check if the profile exists
-          const { data: existingProfile, error: existingProfileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', fundData.uploaded_by_agent_id)
-            .single();
-            
-          if (existingProfileError || !existingProfile) {
-            console.log('Profile not found, creating a new record');
-            
-            // Create a new profile record
-            const { data: newProfile, error: newProfileError } = await supabase
-              .from('profiles')
-              .upsert({
-                id: fundData.uploaded_by_agent_id,
-                name: 'Fund Manager',
-                bio: 'Experienced fund manager with a track record of successful investments.',
-                title: 'Investment Manager',
-                years_experience: 10,
-                certifications: 'CFA, CFP',
-                linkedin_url: 'https://linkedin.com/in/fundmanager',
-                website_url: 'https://fundconnect.com'
-              })
-              .select()
-              .single();
-              
-            if (!newProfileError && newProfile) {
-              console.log('Created new profile record:', newProfile);
-            } else {
-              console.error('Error creating profile record:', newProfileError);
-            }
-          } else {
-            console.log('Profile record exists:', existingProfile);
-          }
-        } catch (error) {
-          console.error('Exception creating/updating profile record:', error);
-        }
-        
-        // After all the debugging and creation attempts, update the agent data directly
-        // Directly query the agent information
+        // Directly query the agent information with correctly joined profile data
         let agentData = null;
         try {
+          // First fetch the agent
           const { data: agentInfo, error: agentError } = await supabase
             .from('agents')
             .select('*')
@@ -302,66 +262,51 @@ export default function FundDetail() {
             agentData = agentInfo;
             console.log('Agent info loaded successfully:', agentInfo);
           } else {
-            console.error('Error loading agent info:', agentError);
+            console.log('Agent not found or error loading agent info:', agentError);
             
-            // Create a default agent object with hardcoded values for the specific ID
-            if (fundData.uploaded_by_agent_id === '58f4abb0-f2df-4905-b99e-041fd0694895') {
-              agentData = {
+            // Create a default agent record if it doesn't exist
+            const { data: newAgent, error: createError } = await supabase
+              .from('agents')
+              .upsert({
                 user_id: fundData.uploaded_by_agent_id,
-                name: 'Chase Hughes',
+                name: 'Fund Manager',
                 firm: 'Fund Connect',
-                broker_dealer_verified: true
-              };
-              console.log('Using hardcoded data for Chase Hughes');
+                broker_dealer_verified: false
+              })
+              .select()
+              .single();
+              
+            if (!createError && newAgent) {
+              console.log('Created new agent record:', newAgent);
+              agentData = newAgent;
             } else {
-              // Default fallback
+              console.error('Failed to create agent record:', createError);
+              // Set default agent data for display purposes
               agentData = {
                 user_id: fundData.uploaded_by_agent_id,
-                name: 'Unknown Agent',
-                firm: 'Unknown Firm',
+                name: 'Fund Manager',
+                firm: 'Fund Connect',
                 broker_dealer_verified: false
               };
             }
           }
         } catch (error) {
-          console.error('Exception loading agent info:', error);
-          
-          // Create a default agent object with hardcoded values for the specific ID
-          if (fundData.uploaded_by_agent_id === '58f4abb0-f2df-4905-b99e-041fd0694895') {
-            agentData = {
-              user_id: fundData.uploaded_by_agent_id,
-              name: 'Chase Hughes',
-              firm: 'Fund Connect',
-              broker_dealer_verified: true
-            };
-            console.log('Using hardcoded data for Chase Hughes (exception handler)');
-          } else {
-            // Default fallback
-            agentData = {
-              user_id: fundData.uploaded_by_agent_id,
-              name: 'Unknown Agent',
-              firm: 'Unknown Firm',
-              broker_dealer_verified: false
-            };
-          }
+          console.error('Exception loading or creating agent info:', error);
+          // Set default agent data
+          agentData = {
+            user_id: fundData.uploaded_by_agent_id,
+            name: 'Fund Manager',
+            firm: 'Fund Connect',
+            broker_dealer_verified: false
+          };
         }
         
-        // Log the agent data for debugging
-        console.log('Agent data:', agentData);
-        console.log('Uploaded by agent ID:', fundData.uploaded_by_agent_id);
-        
-        // Fetch the agent's profile data
-        let profileData = {
-          avatar_url: 'https://avatars.githubusercontent.com/u/12345678?v=4',
-          bio: 'Experienced fund manager with a track record of successful investments.',
-          title: 'Investment Manager',
-          years_experience: 10,
-          certifications: 'CFA, CFP',
-          linkedin_url: 'https://linkedin.com/in/chasehughes',
-          website_url: 'https://fundconnect.com'
-        };
-        
+        // Now fetch the profile separately using the same user_id
+        let profileData = null;
         try {
+          console.log('Attempting to load profile with ID:', fundData.uploaded_by_agent_id);
+          
+          // First try with a direct query
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select(`
@@ -371,25 +316,131 @@ export default function FundDetail() {
               years_experience,
               certifications,
               linkedin_url,
-              website_url
+              website_url,
+              company
             `)
             .eq('id', fundData.uploaded_by_agent_id)
             .single();
             
           if (!profileError && profile) {
-            // Only override the default if we actually get data
-            if (profile.avatar_url || profile.bio || profile.title) {
-              profileData = profile;
-              console.log('Profile loaded successfully:', profile);
-            } else {
-              console.log('Profile exists but has empty fields, using default data');
-            }
+            profileData = profile;
+            console.log('Profile loaded successfully:', profile);
           } else {
-            console.error('Error loading profile:', profileError);
+            console.log('Profile not found with standard query or error loading profile:', profileError);
+            
+            // Try with a direct SQL RPC call to bypass potential RLS issues
+            console.log('Attempting to fetch profile with SQL function');
+            const { data: rpcProfile, error: rpcError } = await supabase.rpc('get_profile_by_id', {
+              profile_id: fundData.uploaded_by_agent_id
+            });
+            
+            if (!rpcError && rpcProfile) {
+              console.log('Profile loaded via RPC:', rpcProfile);
+              profileData = rpcProfile;
+            } else {
+              console.log('RPC profile fetch failed:', rpcError);
+              
+              // Try with a public function (if available)
+              console.log('Attempting public profile fetch');
+              const { data: publicProfile, error: publicError } = await supabase.rpc('get_public_profile', {
+                user_id: fundData.uploaded_by_agent_id
+              });
+              
+              if (!publicError && publicProfile) {
+                console.log('Profile loaded via public function:', publicProfile);
+                profileData = publicProfile;
+              } else {
+                console.log('Public profile fetch failed:', publicError);
+                
+                // Last resort: try to query all profiles and find the matching one
+                console.log('Attempting to fetch all profiles to find match');
+                const { data: allProfiles, error: allProfilesError } = await supabase
+                  .from('profiles')
+                  .select('*');
+                  
+                if (!allProfilesError && allProfiles) {
+                  console.log('All profiles count:', allProfiles.length);
+                  const matchingProfile = allProfiles.find(p => p.id === fundData.uploaded_by_agent_id);
+                  
+                  if (matchingProfile) {
+                    console.log('Found matching profile in all profiles:', matchingProfile);
+                    profileData = matchingProfile;
+                  } else {
+                    console.log('No matching profile found in all profiles');
+                    // Try to check for case sensitivity issues
+                    const potentialMatches = allProfiles.filter(p => 
+                      p.id.toLowerCase() === fundData.uploaded_by_agent_id.toLowerCase()
+                    );
+                    console.log('Potential case-insensitive matches:', potentialMatches);
+                  }
+                }
+              }
+            }
+            
+            // If all query attempts fail, try to create a new profile as a last resort
+            if (!profileData) {
+              console.log('All profile fetch attempts failed, trying to create a new profile');
+              try {
+                // Try to create a basic profile
+                const { data: newProfile, error: createProfileError } = await supabase
+                  .from('profiles')
+                  .upsert({
+                    id: fundData.uploaded_by_agent_id,
+                    name: agentData.name,
+                    title: 'Investment Manager',
+                    bio: null,
+                    years_experience: null,
+                    certifications: null
+                  })
+                  .select()
+                  .single();
+                  
+                if (!createProfileError && newProfile) {
+                  console.log('Created new profile record:', newProfile);
+                  profileData = newProfile;
+                } else {
+                  console.log('Failed to create profile record:', createProfileError);
+                }
+              } catch (createError) {
+                console.error('Exception while creating profile:', createError);
+              }
+            }
           }
         } catch (error) {
           console.error('Exception loading profile:', error);
         }
+        
+        // Log the agent and profile data for debugging
+        console.log('Agent data:', agentData);
+        console.log('Profile data:', profileData);
+        console.log('Uploaded by agent ID:', fundData.uploaded_by_agent_id);
+        
+        // Additional diagnostic information
+        const debugInfo = {
+          fundId: fundData.id,
+          uploadedByAgentId: fundData.uploaded_by_agent_id,
+          agent: {
+            user_id: agentData?.user_id,
+            name: agentData?.name,
+            firm: agentData?.firm,
+            verified: agentData?.broker_dealer_verified
+          },
+          profile: {
+            exists: !!profileData,
+            data: profileData ? {
+              avatar_url: profileData.avatar_url,
+              title: profileData.title,
+              bio: profileData.bio,
+              years_experience: profileData.years_experience
+            } : null
+          },
+          relationships: {
+            fund_to_agent: "funds.uploaded_by_agent_id → agents.user_id",
+            agent_to_profile: "agents.user_id → profiles.id"
+          }
+        };
+        
+        console.log('Full debug info:', JSON.stringify(debugInfo, null, 2));
         
         // Use type assertion to satisfy TypeScript
         const formattedFund: Fund = {
@@ -405,12 +456,21 @@ export default function FundDetail() {
           fund_website: (enhancedData as any)?.fund_website || null,
           fund_logo_url: (enhancedData as any)?.fund_logo_url || null,
           agent: {
-            user_id: agentData?.user_id || fundData.uploaded_by_agent_id,
-            name: agentData?.name || 'Unknown Agent',
-            firm: agentData?.firm || 'Unknown Firm',
-            broker_dealer_verified: agentData?.broker_dealer_verified || false,
-            // Use the fetched profile data
-            profile: profileData
+            user_id: agentData?.user_id,
+            name: agentData?.name,
+            firm: agentData?.firm,
+            broker_dealer_verified: agentData?.broker_dealer_verified,
+            // Use the fetched profile data with proper typing
+            profile: profileData ? {
+              avatar_url: profileData.avatar_url,
+              bio: profileData.bio,
+              title: profileData.title,
+              years_experience: profileData.years_experience,
+              certifications: profileData.certifications,
+              linkedin_url: profileData.linkedin_url,
+              website_url: profileData.website_url,
+              company: profileData.company
+            } : undefined
           },
           documents: documents || []
         };
@@ -713,163 +773,167 @@ export default function FundDetail() {
           </div>
         </div>
 
-        {/* Agent Profile Section */}
-        <div className="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
-          <div className="px-4 py-5 sm:px-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">
-              Listed By
-            </h3>
-            <p className="mt-1 max-w-2xl text-sm text-gray-500">
-              Contact information and details about the agent who listed this fund.
-            </p>
-          </div>
-          <div className="border-t border-gray-200">
-            <div className="px-4 py-5 sm:px-6 flex items-start">
-              <div className="flex-shrink-0">
-                {fund.agent?.profile?.avatar_url ? (
-                  <img
-                    className="h-16 w-16 rounded-full object-cover"
-                    src={fund.agent.profile.avatar_url}
-                    alt={`${fund.agent.name} avatar`}
-                  />
+        {/* Agent Profile Section as Collapsible Accordion */}
+        <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 mt-8 shadow overflow-hidden sm:rounded-lg">
+          <dt className="text-sm font-medium text-gray-500">
+            Listed By
+          </dt>
+          <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+            <button 
+              onClick={() => setShowAgentDetails(!showAgentDetails)}
+              className="w-full flex justify-between items-center focus:outline-none"
+            >
+              <span className="text-sm text-gray-500">
+                Contact information and details about the agent who listed this fund.
+              </span>
+              <div className="text-gray-400">
+                {showAgentDetails ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
                 ) : (
-                  <div className="h-16 w-16 rounded-full bg-primary flex items-center justify-center">
-                    <span className="text-xl font-medium text-white">
-                      {fund.agent?.name.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
                 )}
               </div>
-              <div className="ml-6 flex-1">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="text-lg font-medium text-gray-900 flex items-center">
-                      {fund.agent?.name}
-                      {fund.agent?.broker_dealer_verified && (
-                        <svg 
-                          className="ml-1.5 h-5 w-5 text-blue-500" 
-                          xmlns="http://www.w3.org/2000/svg" 
-                          viewBox="0 0 20 20" 
-                          fill="currentColor"
-                        >
-                          <path 
-                            fillRule="evenodd" 
-                            d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" 
-                            clipRule="evenodd" 
-                          />
-                        </svg>
-                      )}
-                    </h4>
-                    <p className="text-sm text-gray-500">
-                      {fund.agent?.profile?.title || 'Investment Professional'} at {fund.agent?.firm}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Agent ID: {fund.agent?.user_id}
-                    </p>
+            </button>
+            
+            {showAgentDetails && (
+              <div className="mt-4 border-t border-gray-200 pt-4">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    {fund.agent?.profile?.avatar_url ? (
+                      <img
+                        className="h-16 w-16 rounded-full object-cover"
+                        src={fund.agent.profile.avatar_url}
+                        alt={`${fund.agent.name} avatar`}
+                        onError={(e) => {
+                          console.error('Avatar image failed to load:', fund.agent?.profile?.avatar_url);
+                          e.currentTarget.src = 'https://via.placeholder.com/150';
+                        }}
+                      />
+                    ) : (
+                      <div className="h-16 w-16 rounded-full bg-primary flex items-center justify-center">
+                        <span className="text-xl font-medium text-white">
+                          {fund.agent?.name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  
-                  <div className="flex space-x-3">
-                    {fund.agent?.profile?.linkedin_url && (
-                      <a 
-                        href={fund.agent.profile.linkedin_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-gray-500"
-                      >
-                        <span className="sr-only">LinkedIn</span>
-                        <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                        </svg>
-                      </a>
-                    )}
+                  <div className="ml-6 flex-1">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="text-lg font-medium text-gray-900 flex items-center">
+                          {fund.agent?.name}
+                          {fund.agent?.broker_dealer_verified && (
+                            <svg 
+                              className="ml-1.5 h-5 w-5 text-blue-500" 
+                              xmlns="http://www.w3.org/2000/svg" 
+                              viewBox="0 0 20 20" 
+                              fill="currentColor"
+                            >
+                              <path 
+                                fillRule="evenodd" 
+                                d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" 
+                                clipRule="evenodd" 
+                              />
+                            </svg>
+                          )}
+                        </h4>
+                        <p className="text-sm text-gray-500">
+                          {fund.agent?.profile?.title || 'Listing Representative'} at {fund.agent?.firm}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {fund.agent?.profile?.company && (
+                            <span className="mr-2">Company: {fund.agent.profile.company}</span>
+                          )}
+                        </p>
+                      </div>
+                      
+                      <div className="flex space-x-3">
+                        {fund.agent?.profile?.linkedin_url && (
+                          <a 
+                            href={fund.agent.profile.linkedin_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-gray-400 hover:text-gray-500"
+                          >
+                            <span className="sr-only">LinkedIn</span>
+                            <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                            </svg>
+                          </a>
+                        )}
+                        
+                        {fund.agent?.profile?.website_url && (
+                          <a 
+                            href={fund.agent.profile.website_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-gray-400 hover:text-gray-500"
+                          >
+                            <span className="sr-only">Website</span>
+                            <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm6.918 6h-3.215c-.188-1.424-.42-2.65-.658-3.477 1.634.89 2.905 2.068 3.873 3.477zM12 4.25c.323 0 .917 1.108 1.374 3.75h-2.748C11.083 5.358 11.677 4.25 12 4.25zm-6.918 3.75c.968-1.41 2.239-2.587 3.873-3.477-.238.827-.47 2.053-.658 3.477H5.082zM4.25 12c0-.69.062-1.363.18-2h3.726c-.045.664-.074 1.327-.074 2s.03 1.336.074 2H4.43c-.118-.637-.18-1.31-.18-2s.062-1.363.18-2zm.832 4h3.215c.188 1.424.42 2.65.658 3.477-1.634-.89-2.905-2.068-3.873-3.477zM12 19.75c-.323 0-.917-1.108-1.374-3.75h2.748c-.457 2.642-1.051 3.75-1.374 3.75zm0-5.75c-.552 0-1-.448-1-1s.448-1 1-1 1 .448 1 1-.448 1-1 1zm6.918 5.75c-.968 1.41-2.239 2.587-3.873 3.477.238-.827.47-2.053.658-3.477h3.215zM16.07 14c.045-.664.074-1.327.074-2s-.03-1.336-.074-2h3.726c.118.637.18 1.31.18 2s-.062 1.363-.18 2h-3.726z"/>
+                            </svg>
+                          </a>
+                        )}
+                        
+                        <button
+                          type="button"
+                          className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                        >
+                          Contact Agent
+                        </button>
+                      </div>
+                    </div>
                     
-                    {fund.agent?.profile?.website_url && (
-                      <a 
-                        href={fund.agent.profile.website_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-gray-500"
-                      >
-                        <span className="sr-only">Website</span>
-                        <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm6.918 6h-3.215c-.188-1.424-.42-2.65-.658-3.477 1.634.89 2.905 2.068 3.873 3.477zM12 4.25c.323 0 .917 1.108 1.374 3.75h-2.748C11.083 5.358 11.677 4.25 12 4.25zm-6.918 3.75c.968-1.41 2.239-2.587 3.873-3.477-.238.827-.47 2.053-.658 3.477H5.082zM4.25 12c0-.69.062-1.363.18-2h3.726c-.045.664-.074 1.327-.074 2s.03 1.336.074 2H4.43c-.118-.637-.18-1.31-.18-2zm.832 4h3.215c.188 1.424.42 2.65.658 3.477-1.634-.89-2.905-2.068-3.873-3.477zM12 19.75c-.323 0-.917-1.108-1.374-3.75h2.748c-.457 2.642-1.051 3.75-1.374 3.75zm0-5.75c-.552 0-1-.448-1-1s.448-1 1-1 1 .448 1 1-.448 1-1 1zm6.918 5.75c-.968 1.41-2.239 2.587-3.873 3.477.238-.827.47-2.053.658-3.477h3.215zM16.07 14c.045-.664.074-1.327.074-2s-.03-1.336-.074-2h3.726c.118.637.18 1.31.18 2s-.062 1.363-.18 2h-3.726z"/>
-                        </svg>
-                      </a>
-                    )}
-                    
-                    <button
-                      type="button"
-                      className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                    >
-                      Contact Agent
-                    </button>
+                    {/* Display additional profile information if available */}
+                    <div className="mt-4 border-t border-gray-100 pt-4">
+                      <h5 className="text-sm font-medium text-gray-700">Profile Information</h5>
+                      
+                      {/* If we have the profile data, show it */}
+                      {fund.agent?.profile && (
+                        <>
+                          {/* Always display bio if available */}
+                          {fund.agent.profile.bio && (
+                            <div className="mt-2">
+                              <h6 className="text-xs font-medium text-gray-600">Bio</h6>
+                              <p className="text-sm text-gray-600">{fund.agent.profile.bio}</p>
+                            </div>
+                          )}
+                          
+                          {/* Show experience and certifications */}
+                          <div className="mt-3 grid grid-cols-2 gap-4">
+                            {(typeof fund.agent.profile.years_experience === 'number') && (
+                              <div>
+                                <h6 className="text-xs font-medium text-gray-600">Experience</h6>
+                                <p className="text-sm text-gray-600">{fund.agent.profile.years_experience} years</p>
+                              </div>
+                            )}
+                            
+                            {fund.agent.profile.certifications && fund.agent.profile.certifications !== "Null" && (
+                              <div>
+                                <h6 className="text-xs font-medium text-gray-600">Certifications</h6>
+                                <p className="text-sm text-gray-600">{fund.agent.profile.certifications}</p>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+                      
+                      {/* If we don't have profile data, display a message */}
+                      {!fund.agent?.profile && (
+                        <p className="text-sm text-gray-500 italic">No additional profile information available.</p>
+                      )}
+                    </div>
                   </div>
                 </div>
-                
-                {fund.agent?.profile?.bio && (
-                  <div className="mt-4">
-                    <h5 className="text-sm font-medium text-gray-700">Bio</h5>
-                    <p className="mt-1 text-sm text-gray-600 whitespace-pre-line">
-                      {fund.agent?.profile?.bio}
-                    </p>
-                  </div>
-                )}
-                
-                {(fund.agent?.profile?.years_experience || fund.agent?.profile?.certifications) && (
-                  <div className="mt-4 grid grid-cols-2 gap-4">
-                    {fund.agent?.profile?.years_experience && (
-                      <div>
-                        <h5 className="text-sm font-medium text-gray-700">Experience</h5>
-                        <p className="text-sm text-gray-600">
-                          {fund.agent.profile.years_experience} years
-                        </p>
-                      </div>
-                    )}
-                    
-                    {fund.agent?.profile?.certifications && (
-                      <div>
-                        <h5 className="text-sm font-medium text-gray-700">Certifications</h5>
-                        <p className="text-sm text-gray-600">
-                          {fund.agent.profile.certifications}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
-            </div>
-          </div>
+            )}
+          </dd>
         </div>
-
-        {/* Debug Information - Only visible in development */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-8 bg-gray-100 p-4 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Debug Information</h3>
-            <div className="overflow-x-auto">
-              <pre className="text-xs text-gray-700 whitespace-pre-wrap">
-                {JSON.stringify({ 
-                  fundId,
-                  uploadedByAgentId: fund?.uploaded_by_agent_id,
-                  agent: {
-                    user_id: fund?.agent?.user_id,
-                    name: fund?.agent?.name,
-                    firm: fund?.agent?.firm,
-                    verified: fund?.agent?.broker_dealer_verified
-                  },
-                  profile: {
-                    exists: !!fund?.agent?.profile,
-                    fields: fund?.agent?.profile ? Object.keys(fund.agent.profile) : [],
-                    data: fund?.agent?.profile
-                  },
-                  relationships: {
-                    fund_to_agent: "funds.uploaded_by_agent_id → agents.user_id",
-                    agent_to_profile: "agents.user_id → profiles.id"
-                  }
-                }, null, 2)}
-              </pre>
-            </div>
-          </div>
-        )}
 
         <div className="mt-6 flex items-center justify-between">
           <Link
