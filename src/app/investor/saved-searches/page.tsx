@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { supabase } from '@/utils/supabase';
+import Link from 'next/link';
 
 type SavedSearch = {
   id: string;
@@ -48,7 +49,7 @@ export default function SavedSearches() {
         setSavedSearches(data || []);
       } catch (error) {
         console.error('Error loading saved searches:', error);
-        setError(error instanceof Error ? error.message : 'An error occurred');
+        setError('Failed to load saved searches');
       } finally {
         setLoading(false);
       }
@@ -152,138 +153,231 @@ export default function SavedSearches() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        <h1 className="text-2xl font-semibold text-gray-900">Saved Searches</h1>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8 border border-gray-100">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-semibold text-primary">Saved Searches</h1>
+            <Link 
+              href="/investor/funds" 
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              Find Funds
+            </Link>
+          </div>
+        </div>
         
-        <div className="py-4">
+        <div className="mt-4">
           {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            <div className="flex justify-center py-12 bg-white rounded-lg shadow-md border border-gray-100">
+              <div className="flex flex-col items-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                <p className="mt-4 text-gray-500">Loading your saved searches...</p>
+              </div>
             </div>
           ) : error ? (
-            <div className="rounded-md bg-red-50 p-4">
+            <div className="rounded-md bg-red-50 p-4 border border-red-100 shadow-sm">
               <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
                 <div className="ml-3">
                   <h3 className="text-sm font-medium text-red-800">{error}</h3>
                 </div>
               </div>
             </div>
           ) : savedSearches.length === 0 ? (
-            <div className="text-center py-12 bg-white shadow sm:rounded-lg">
-              <svg
-                className="mx-auto h-12 w-12 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No saved searches</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Save your fund searches to quickly access them later.
-              </p>
-              <div className="mt-6">
-                <button
-                  type="button"
-                  onClick={() => router.push('/investor/funds')}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            <div className="bg-white shadow-md rounded-lg p-10 border border-gray-100 flex flex-col items-center justify-center">
+              <div className="bg-gray-50 rounded-full p-6 mb-4">
+                <svg
+                  className="h-16 w-16 text-gray-300"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
-                  Find Funds
-                </button>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-primary mb-2">No saved searches</h3>
+              <p className="text-gray-500 text-center max-w-md mb-6">
+                Save your fund searches with specific filters to quickly access them later and receive alerts when new matching funds are added.
+              </p>
+              <div className="flex items-center bg-blue-50 p-4 rounded-lg border border-blue-100 max-w-md text-left">
+                <div className="bg-blue-100 rounded-full p-2 mr-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-medium text-blue-800 text-sm mb-1">How to save a search</h4>
+                  <p className="text-sm text-blue-700">
+                    Go to the Find Funds page, set your filters, and click "Save Search" to save your criteria for easy access later.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-8">
+                <Link
+                  href="/investor/funds"
+                  className="inline-flex items-center px-5 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  Go to Find Funds
+                </Link>
               </div>
             </div>
           ) : (
-            <div className="bg-white shadow overflow-hidden sm:rounded-md">
-              <ul className="divide-y divide-gray-200">
-                {savedSearches.map((search) => (
-                  <li key={search.id}>
-                    <div className="px-4 py-4 sm:px-6">
-                      {editingSearch?.id === search.id ? (
-                        <div className="flex items-center justify-between">
-                          <input
-                            type="text"
-                            value={searchName}
-                            onChange={(e) => setSearchName(e.target.value)}
-                            className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm"
-                            placeholder="Search name"
-                          />
-                          <div className="ml-4 flex-shrink-0">
-                            <button
-                              type="button"
-                              onClick={handleSaveEdit}
-                              className="mr-2 font-medium text-primary hover:text-primary-dark"
-                            >
-                              Save
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditingSearch(null)}
-                              className="font-medium text-gray-500 hover:text-gray-700"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium text-primary truncate">
-                            {search.name}
-                          </p>
-                          <div className="ml-2 flex-shrink-0 flex">
-                            <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                              {formatDate(search.created_at)}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                      <div className="mt-2 sm:flex sm:justify-between">
-                        <div className="sm:flex">
-                          <p className="flex items-center text-sm text-gray-500">
+            <div className="bg-white shadow-md rounded-lg overflow-hidden border border-gray-100">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Search Name
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Criteria
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Created
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Alerts
+                      </th>
+                      <th scope="col" className="relative px-6 py-3">
+                        <span className="sr-only">Actions</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {savedSearches.map((search, idx) => (
+                      <tr key={search.id} className={idx % 2 === 0 ? 'bg-white hover:bg-gray-50' : 'bg-gray-50 hover:bg-gray-100'}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-primary">{search.name}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900 max-w-md">
                             {formatCriteria(search.criteria)}
-                          </p>
-                        </div>
-                        <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                          <div className="flex space-x-2">
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-500">{formatDate(search.created_at)}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button 
+                            onClick={() => handleToggleAlerts(search.id, search.alerts_enabled)}
+                            className={`relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${search.alerts_enabled ? 'bg-accent-green focus:ring-accent-green' : 'bg-gray-200 focus:ring-primary'}`}
+                            aria-pressed="false"
+                          >
+                            <span className="sr-only">Toggle alerts</span>
+                            <span
+                              aria-hidden="true"
+                              className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200 ${search.alerts_enabled ? 'translate-x-5' : 'translate-x-0'}`}
+                            ></span>
+                          </button>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex items-center space-x-3 justify-end">
                             <button
                               onClick={() => handleApplySearch(search)}
-                              className="text-primary hover:text-primary-dark font-medium"
+                              className="text-primary hover:text-primary-dark flex items-center"
                             >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                              </svg>
                               Apply
                             </button>
                             <button
                               onClick={() => handleEditSearch(search)}
-                              className="text-gray-600 hover:text-gray-900 font-medium"
+                              className="text-blue-600 hover:text-blue-800 flex items-center"
                             >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
                               Edit
                             </button>
                             <button
-                              onClick={() => handleToggleAlerts(search.id, search.alerts_enabled)}
-                              className={`${search.alerts_enabled ? 'text-green-600 hover:text-green-900' : 'text-gray-600 hover:text-gray-900'} font-medium`}
-                            >
-                              {search.alerts_enabled ? 'Alerts On' : 'Alerts Off'}
-                            </button>
-                            <button
                               onClick={() => handleDeleteSearch(search.id)}
-                              className="text-red-600 hover:text-red-900 font-medium"
+                              className="text-red-600 hover:text-red-800 flex items-center"
                             >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
                               Delete
                             </button>
                           </div>
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
+
+        {/* Edit search modal */}
+        {editingSearch && (
+          <div className="fixed z-10 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+              <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={() => setEditingSearch(null)}></div>
+
+              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+              <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div className="sm:flex sm:items-start">
+                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                      <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                        Edit Saved Search
+                      </h3>
+                      <div className="mt-4">
+                        <label htmlFor="searchName" className="block text-sm font-medium text-gray-700">
+                          Search Name
+                        </label>
+                        <input
+                          type="text"
+                          name="searchName"
+                          id="searchName"
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+                          value={searchName}
+                          onChange={(e) => setSearchName(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                  <button
+                    type="button"
+                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary text-base font-medium text-white hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:ml-3 sm:w-auto sm:text-sm"
+                    onClick={handleSaveEdit}
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                    onClick={() => setEditingSearch(null)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

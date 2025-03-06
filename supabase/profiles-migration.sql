@@ -19,7 +19,6 @@ CREATE TABLE IF NOT EXISTS profiles (
   email_notifications BOOLEAN DEFAULT TRUE,
   marketing_emails BOOLEAN DEFAULT TRUE,
   profile_visibility TEXT DEFAULT 'private',
-  dark_mode BOOLEAN DEFAULT FALSE,
   language TEXT DEFAULT 'en',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

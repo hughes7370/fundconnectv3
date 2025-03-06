@@ -47,226 +47,282 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   // Define navigation based on user role
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard', current: pathname === '/dashboard' },
+    { name: 'Dashboard', href: '/dashboard', current: pathname === '/dashboard', icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+      </svg>
+    ) },
   ];
 
   // Add role-specific navigation items
   if (userRole === 'agent') {
     navigation.push(
-      { name: 'My Funds', href: '/agent/funds', current: pathname.startsWith('/agent/funds') },
-      { name: 'My Investors', href: '/agent/investors', current: pathname.startsWith('/agent/investors') },
-      { name: 'Commissions', href: '/agent/commissions', current: pathname === '/agent/commissions' },
+      { name: 'My Funds', href: '/agent/funds', current: pathname.startsWith('/agent/funds'), icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ) },
+      { name: 'My Investors', href: '/agent/investors', current: pathname.startsWith('/agent/investors'), icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+      ) },
+      { name: 'Commissions', href: '/agent/commissions', current: pathname === '/agent/commissions', icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      ) },
     );
   } else if (userRole === 'investor') {
     navigation.push(
-      { name: 'Find Funds', href: '/investor/funds', current: pathname.startsWith('/investor/funds') },
-      { name: 'My Interests', href: '/investor/interests', current: pathname === '/investor/interests' },
-      { name: 'Saved Searches', href: '/investor/saved-searches', current: pathname === '/investor/saved-searches' },
+      { name: 'Find Funds', href: '/investor/funds', current: pathname.startsWith('/investor/funds'), icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      ) },
+      { name: 'My Interests', href: '/investor/interests', current: pathname === '/investor/interests', icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+        </svg>
+      ) },
+      { name: 'Saved Searches', href: '/investor/saved-searches', current: pathname === '/investor/saved-searches', icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      ) },
     );
   } else if (userRole === 'admin') {
     navigation.push(
-      { name: 'Users', href: '/admin/users', current: pathname.startsWith('/admin/users') },
-      { name: 'Funds', href: '/admin/funds', current: pathname.startsWith('/admin/funds') },
-      { name: 'Approval Requests', href: '/admin/approvals', current: pathname === '/admin/approvals' },
+      { name: 'Users', href: '/admin/users', current: pathname.startsWith('/admin/users'), icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+      ) },
+      { name: 'Funds', href: '/admin/funds', current: pathname.startsWith('/admin/funds'), icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+      ) },
+      { name: 'Approval Requests', href: '/admin/approvals', current: pathname === '/admin/approvals', icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ) },
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-50">
       <StorageInitializer />
-      {/* Navigation sidebar for larger screens */}
-      <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
-        <div className="flex-1 flex flex-col min-h-0 bg-gray-800">
-          <div className="flex items-center h-16 flex-shrink-0 px-4 bg-gray-900">
-            <Link href="/dashboard" className="text-white text-xl font-bold">
-              Fund Connect
-            </Link>
+      {/* Sidebar for desktop */}
+      <div className="hidden md:fixed md:inset-y-0 md:flex md:w-64 md:flex-col">
+        <div className="flex min-h-0 flex-1 flex-col bg-primary shadow-xl">
+          <div className="flex flex-1 flex-col overflow-y-auto pt-5 pb-4">
+            <div className="flex flex-shrink-0 items-center justify-center px-4 mb-5">
+              <Link href="/dashboard" className="flex items-center">
+                <div className="bg-secondary h-10 px-4 flex items-center justify-center rounded-md text-white font-semibold shadow-sm">
+                  Fund Connect
+                </div>
+              </Link>
+            </div>
+            
+            <div className="mt-1 px-3">
+              <div className="space-y-1">
+                {navigation.map((item) => (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={`
+                      group flex items-center px-3 py-3 text-sm font-medium rounded-md transition-all
+                      ${item.current
+                        ? 'bg-primary-dark text-white shadow-sm'
+                        : 'text-white/80 hover:bg-primary-light hover:text-white'
+                      }
+                    `}
+                  >
+                    {item.icon}
+                    {item.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="flex-1 flex flex-col overflow-y-auto">
-            <nav className="flex-1 px-2 py-4 space-y-1">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={`${
-                    item.current
-                      ? 'bg-gray-900 text-white'
-                      : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                  } group flex items-center px-2 py-2 text-sm font-medium rounded-md`}
-                >
-                  {item.name}
-                </Link>
-              ))}
-            </nav>
+          <div className="flex flex-shrink-0 p-4 border-t border-primary-dark">
+            <div className="group block w-full flex-shrink-0">
+              <div className="flex items-center">
+                <div>
+                  <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center text-white shadow-sm">
+                    {userName ? userName.charAt(0).toUpperCase() : 'U'}
+                  </div>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-white">{userName || 'User'}</p>
+                  <button
+                    onClick={handleSignOut}
+                    className="text-xs font-medium text-gray-light group-hover:text-white flex items-center mt-1"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Sign out
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Mobile header */}
-      <div className="md:pl-64 flex flex-col flex-1">
-        <div className="sticky top-0 z-10 flex-shrink-0 flex h-16 bg-white shadow md:hidden">
-          <button
-            type="button"
-            className="px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary md:hidden"
-            onClick={() => setIsMenuOpen(true)}
+      {/* Mobile menu */}
+      <div className="md:hidden">
+        <div className={`fixed inset-0 z-40 flex ${isMenuOpen ? 'visible' : 'invisible'}`}>
+          <div
+            className={`fixed inset-0 bg-gray-dark bg-opacity-75 transition-opacity ease-in-out duration-300 ${
+              isMenuOpen ? 'opacity-100' : 'opacity-0'
+            }`}
+            onClick={() => setIsMenuOpen(false)}
+          ></div>
+
+          <div
+            className={`relative flex w-full max-w-xs flex-1 flex-col bg-primary pt-5 pb-4 transform transition ease-in-out duration-300 shadow-xl ${
+              isMenuOpen ? 'translate-x-0' : '-translate-x-full'
+            }`}
           >
-            <span className="sr-only">Open sidebar</span>
-            <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          <div className="flex-1 px-4 flex justify-between">
-            <div className="flex-1 flex items-center">
-              <span className="text-lg font-semibold text-gray-900">Fund Connect</span>
+            <div className="absolute top-0 right-0 -mr-12 pt-2">
+              <button
+                type="button"
+                className="ml-1 flex h-10 w-10 items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <span className="sr-only">Close sidebar</span>
+                <svg
+                  className="h-6 w-6 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
             </div>
-            <div className="ml-4 flex items-center md:ml-6">
-              <div className="ml-3 relative">
-                <div>
-                  <button
-                    type="button"
-                    className="max-w-xs bg-white flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                    onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+
+            <div className="flex flex-shrink-0 items-center justify-center px-4 mb-5">
+              <div className="bg-secondary h-10 px-4 flex items-center justify-center rounded-md text-white font-semibold shadow-sm">
+                Fund Connect
+              </div>
+            </div>
+            
+            <div className="mt-1 px-3 overflow-y-auto">
+              <div className="space-y-1">
+                {navigation.map((item) => (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={`
+                      group flex items-center px-3 py-3 text-sm font-medium rounded-md transition-all
+                      ${item.current
+                        ? 'bg-primary-dark text-white shadow-sm'
+                        : 'text-white/80 hover:bg-primary-light hover:text-white'
+                      }
+                    `}
+                    onClick={() => setIsMenuOpen(false)}
                   >
-                    <span className="sr-only">Open user menu</span>
-                    <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
-                      <span className="text-xs font-medium text-gray-700">
-                        {userName ? userName.charAt(0).toUpperCase() : '?'}
-                      </span>
-                    </div>
-                  </button>
-                </div>
-                {isProfileDropdownOpen && (
-                  <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5">
-                    <Link
-                      href="/dashboard/profile"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={() => setIsProfileDropdownOpen(false)}
-                    >
-                      Your Profile
-                    </Link>
-                    <button
-                      onClick={() => {
-                        setIsProfileDropdownOpen(false);
-                        handleSignOut();
-                      }}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      Sign out
-                    </button>
-                  </div>
-                )}
+                    {item.icon}
+                    {item.name}
+                  </Link>
+                ))}
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Mobile navigation menu */}
-        {isMenuOpen && (
-          <div className="fixed inset-0 flex z-40 md:hidden">
-            <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setIsMenuOpen(false)}></div>
-            <div className="relative flex-1 flex flex-col max-w-xs w-full bg-gray-800">
-              <div className="absolute top-0 right-0 -mr-12 pt-2">
+      {/* Mobile top bar */}
+      <div className="sticky top-0 z-10 bg-white md:hidden shadow-sm">
+        <div className="flex h-16 items-center justify-between border-b border-gray-light px-4">
+          <div className="flex items-center">
+            <button
+              type="button"
+              className="inline-flex items-center justify-center rounded-md p-2 text-gray-dark hover:bg-gray-light hover:text-primary focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
+              onClick={() => setIsMenuOpen(true)}
+            >
+              <span className="sr-only">Open sidebar</span>
+              <svg
+                className="h-6 w-6"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+            </button>
+            <div className="ml-4">
+              <div className="bg-secondary h-8 px-3 flex items-center justify-center rounded-md text-white font-semibold text-sm shadow-sm">
+                Fund Connect
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center">
+            <div className="relative ml-3">
+              <div>
                 <button
                   type="button"
-                  className="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
-                  onClick={() => setIsMenuOpen(false)}
+                  className="flex max-w-xs items-center rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                  onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
                 >
-                  <span className="sr-only">Close sidebar</span>
-                  <svg className="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <span className="sr-only">Open user menu</span>
+                  <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center text-white shadow-sm">
+                    {userName ? userName.charAt(0).toUpperCase() : 'U'}
+                  </div>
                 </button>
               </div>
-              <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
-                <div className="flex-shrink-0 flex items-center px-4">
-                  <span className="text-white text-xl font-bold">Fund Connect</span>
-                </div>
-                <nav className="mt-5 px-2 space-y-1">
-                  {navigation.map((item) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={`${
-                        item.current
-                          ? 'bg-gray-900 text-white'
-                          : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                      } group flex items-center px-2 py-2 text-base font-medium rounded-md`}
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
-                </nav>
-              </div>
-              <div className="flex-shrink-0 flex border-t border-gray-700 p-4">
-                <div className="flex items-center">
-                  <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                    <span className="text-sm font-medium text-gray-700">
-                      {userName ? userName.charAt(0).toUpperCase() : '?'}
-                    </span>
+              {isProfileDropdownOpen && (
+                <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 z-50">
+                  <div className="px-4 py-2 text-xs text-gray-500 border-b border-gray-100">
+                    <div>{userName || 'User'}</div>
+                    <div className="capitalize">{userRole || 'loading...'}</div>
                   </div>
-                  <div className="ml-3">
-                    <p className="text-base font-medium text-white">{userName || 'User'}</p>
-                    <p className="text-sm font-medium text-gray-400 capitalize">{userRole || 'loading...'}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Desktop header */}
-        <div className="sticky top-0 z-10 flex-shrink-0 h-16 bg-white shadow hidden md:flex">
-          <div className="flex-1 px-4 flex justify-between">
-            <div className="flex-1 flex"></div>
-            <div className="ml-4 flex items-center md:ml-6">
-              <div className="ml-3 relative">
-                <div>
-                  <button
-                    type="button"
-                    className="max-w-xs bg-white flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                    onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                  <Link
+                    href="/dashboard/profile"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsProfileDropdownOpen(false)}
                   >
-                    <span className="sr-only">Open user menu</span>
-                    <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
-                      <span className="text-xs font-medium text-gray-700">
-                        {userName ? userName.charAt(0).toUpperCase() : '?'}
-                      </span>
-                    </div>
+                    Your Profile
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setIsProfileDropdownOpen(false);
+                      handleSignOut();
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    Sign out
                   </button>
                 </div>
-                {isProfileDropdownOpen && (
-                  <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5">
-                    <div className="px-4 py-2 text-xs text-gray-500 border-b border-gray-100">
-                      <div>{userName || 'User'}</div>
-                      <div className="capitalize">{userRole || 'loading...'}</div>
-                    </div>
-                    <Link
-                      href="/dashboard/profile"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={() => setIsProfileDropdownOpen(false)}
-                    >
-                      Your Profile
-                    </Link>
-                    <button
-                      onClick={() => {
-                        setIsProfileDropdownOpen(false);
-                        handleSignOut();
-                      }}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      Sign out
-                    </button>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Main content */}
+      {/* Main content */}
+      <div className="md:pl-64 flex flex-col flex-1">
         <main className="flex-1">
-          <div className="py-6">
+          <div className="py-6 px-4">
             {children}
           </div>
         </main>

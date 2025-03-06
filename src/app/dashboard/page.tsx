@@ -233,48 +233,74 @@ export default function Dashboard() {
 
     return (
       <div>
-        <div className="md:grid md:grid-cols-3 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Summary Cards */}
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <dt className="text-sm font-medium text-gray-500 truncate">
-                {userRole === 'agent' ? 'Your Funds' : 'Available Funds'}
-              </dt>
-              <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                {stats.totalFunds}
-              </dd>
+          <div className="bg-white overflow-hidden shadow-md rounded-lg border border-gray-100 transition-all hover:shadow-lg">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 bg-primary-light p-4 text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <div className="px-4 py-5">
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  {userRole === 'agent' ? 'Your Funds' : 'Available Funds'}
+                </dt>
+                <dd className="mt-2 text-3xl font-semibold text-primary">
+                  {stats.totalFunds}
+                </dd>
+              </div>
             </div>
           </div>
           
-          <div className="bg-white overflow-hidden shadow rounded-lg mt-4 md:mt-0">
-            <div className="px-4 py-5 sm:p-6">
-              <dt className="text-sm font-medium text-gray-500 truncate">
-                {userRole === 'investor' ? 'Active Interests' : userRole === 'admin' ? 'Pending Approvals' : 'Investor Interests'}
-              </dt>
-              <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                {userRole === 'investor' ? stats.activeInterests : userRole === 'admin' ? stats.pendingApprovals : stats.activeInterests}
-              </dd>
+          <div className="bg-white overflow-hidden shadow-md rounded-lg border border-gray-100 transition-all hover:shadow-lg">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 bg-secondary p-4 text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+              </div>
+              <div className="px-4 py-5">
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  {userRole === 'investor' ? 'Active Interests' : userRole === 'admin' ? 'Pending Approvals' : 'Investor Interests'}
+                </dt>
+                <dd className="mt-2 text-3xl font-semibold text-primary">
+                  {userRole === 'investor' ? stats.activeInterests : userRole === 'admin' ? stats.pendingApprovals : stats.activeInterests}
+                </dd>
+              </div>
             </div>
           </div>
           
-          <div className="bg-white overflow-hidden shadow rounded-lg mt-4 md:mt-0">
-            <div className="px-4 py-5 sm:p-6">
-              <dt className="text-sm font-medium text-gray-500 truncate">
-                {userRole === 'agent' ? 'Commission Rate' : userRole === 'investor' ? 'Saved Searches' : 'Total Users'}
-              </dt>
-              <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                {userRole === 'agent' ? '5%' : userRole === 'investor' ? '0' : '0'}
-              </dd>
+          <div className="bg-white overflow-hidden shadow-md rounded-lg border border-gray-100 transition-all hover:shadow-lg">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 bg-accent-green p-4 text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div className="px-4 py-5">
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  {userRole === 'agent' ? 'Commission Rate' : userRole === 'investor' ? 'Saved Searches' : 'Total Users'}
+                </dt>
+                <dd className="mt-2 text-3xl font-semibold text-primary">
+                  {userRole === 'agent' ? '5%' : userRole === 'investor' ? '0' : '0'}
+                </dd>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Role-specific dashboard content */}
-        <div className="mt-8">
-          <h2 className="text-lg font-medium text-gray-900">{getRoleSpecificHeading()}</h2>
+        <div className="mt-10">
+          <div className="flex items-center mb-5">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-secondary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+            <h2 className="text-xl font-semibold text-primary">{getRoleSpecificHeading()}</h2>
+          </div>
           
-          <div className="mt-4 bg-white shadow rounded-lg overflow-hidden">
-            <div className="px-4 py-5 sm:p-6">
+          <div className="bg-white shadow-md rounded-lg overflow-hidden border border-gray-100">
+            <div className="px-6 py-6">
               {getRoleSpecificContent()}
             </div>
           </div>
@@ -300,25 +326,43 @@ export default function Dashboard() {
     switch (userRole) {
       case 'agent':
         return (
-          <p className="text-gray-500">
-            No recent investor activity to display. As investors express interest in your funds, they will appear here.
-          </p>
+          <div className="text-center py-6">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <p className="mt-4 text-gray-500">
+              No recent investor activity to display. As investors express interest in your funds, they will appear here.
+            </p>
+          </div>
         );
       case 'investor':
         return (
-          <p className="text-gray-500">
-            No recent fund matches to display. As new funds matching your criteria are added, they will appear here.
-          </p>
+          <div className="text-center py-6">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <p className="mt-4 text-gray-500">
+              No recent fund matches to display. As new funds matching your criteria are added, they will appear here.
+            </p>
+            <div className="mt-6">
+              <Link href="/investor/funds" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark">
+                Browse Funds
+              </Link>
+            </div>
+          </div>
         );
       case 'admin':
         return (
           <div>
-            <p className="text-gray-500 mb-4">
-              System Status: <span className="text-green-500 font-medium">Online</span>
-            </p>
+            <div className="flex items-center mb-4">
+              <div className="h-5 w-5 rounded-full bg-green-500 mr-2"></div>
+              <p className="text-gray-500">
+                System Status: <span className="text-green-500 font-medium">Online</span>
+              </p>
+            </div>
             
             {stats.pendingApprovals > 0 ? (
-              <div className="bg-yellow-50 p-4 rounded-md">
+              <div className="bg-yellow-50 p-4 rounded-md border border-yellow-100">
                 <div className="flex">
                   <div className="flex-shrink-0">
                     <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -333,48 +377,73 @@ export default function Dashboard() {
                       <p>
                         There are {stats.pendingApprovals} investor{stats.pendingApprovals > 1 ? 's' : ''} waiting for approval.
                       </p>
+                      <div className="mt-4">
+                        <Link href="/admin/approvals" className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200">
+                          Review Approvals
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             ) : (
-              <p className="text-gray-500">
-                No pending approvals. All systems running smoothly.
-              </p>
+              <div className="text-center py-6">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="mt-4 text-gray-500">
+                  No pending approvals. All systems running smoothly.
+                </p>
+              </div>
             )}
           </div>
         );
       default:
         return (
-          <p className="text-gray-500">
-            Dashboard content is loading...
-          </p>
+          <div className="text-center py-6">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-gray-500">
+              Dashboard content is loading...
+            </p>
+          </div>
         );
     }
   };
 
   return (
     <DashboardLayout>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
-          {userName && (
-            <div className="text-sm text-gray-500">
-              Welcome, <span className="font-medium text-gray-900">{userName}</span>
-              {userRole && <span className="ml-1">({userRole})</span>}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8 border border-gray-100">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2">
+            <h1 className="text-2xl font-semibold text-primary mb-2 sm:mb-0">Dashboard</h1>
+            {userName && (
+              <div className="bg-gray-50 rounded-full px-4 py-2 border border-gray-100 flex items-center">
+                <div className="h-7 w-7 rounded-full bg-secondary flex items-center justify-center text-white mr-2 shadow-sm">
+                  {userName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <span className="font-medium text-primary">{userName}</span>
+                  {userRole && <span className="ml-1 text-sm text-gray-500">({userRole})</span>}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {error && !showFallback && (
+            <div className="mt-4 rounded-md bg-red-50 p-4 border border-red-100">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">{error}</h3>
+                </div>
+              </div>
             </div>
           )}
         </div>
-        
-        {error && !showFallback && (
-          <div className="mt-4 rounded-md bg-red-50 p-4">
-            <div className="flex">
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">{error}</h3>
-              </div>
-            </div>
-          </div>
-        )}
         
         <div className="py-4">
           {renderDashboardContent()}
