@@ -38,11 +38,11 @@ export default function InvestorFunds() {
   const [error, setError] = useState<string | null>(null);
   
   const [filters, setFilters] = useState<FilterState>({
-    strategy: searchParams.get('strategy') || '',
-    minSize: searchParams.get('minSize') || '',
-    maxSize: searchParams.get('maxSize') || '',
-    geography: searchParams.get('geography') || '',
-    sector: searchParams.get('sector') || '',
+    strategy: searchParams?.get('strategy') || '',
+    minSize: searchParams?.get('minSize') || '',
+    maxSize: searchParams?.get('maxSize') || '',
+    geography: searchParams?.get('geography') || '',
+    sector: searchParams?.get('sector') || '',
   });
   
   const [strategies, setStrategies] = useState<string[]>([]);
@@ -234,23 +234,21 @@ export default function InvestorFunds() {
   const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     const { name, value } = e.target;
     
-    setFilters({
+    const newFilters = {
       ...filters,
       [name]: value,
-    });
-  };
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+    };
     
-    // Update URL with filters
+    setFilters(newFilters);
+    
+    // Update URL with filters immediately
     const params = new URLSearchParams();
     
-    if (filters.strategy) params.set('strategy', filters.strategy);
-    if (filters.minSize) params.set('minSize', filters.minSize);
-    if (filters.maxSize) params.set('maxSize', filters.maxSize);
-    if (filters.geography) params.set('geography', filters.geography);
-    if (filters.sector) params.set('sector', filters.sector);
+    if (newFilters.strategy) params.set('strategy', newFilters.strategy);
+    if (newFilters.minSize) params.set('minSize', newFilters.minSize);
+    if (newFilters.maxSize) params.set('maxSize', newFilters.maxSize);
+    if (newFilters.geography) params.set('geography', newFilters.geography);
+    if (newFilters.sector) params.set('sector', newFilters.sector);
     
     router.push(`/investor/funds?${params.toString()}`);
   };
@@ -431,142 +429,145 @@ export default function InvestorFunds() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-md p-6 mb-8 border border-gray-100">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-semibold text-primary">Find Funds</h1>
+            <h1 className="text-2xl font-bold text-primary">Find Funds</h1>
           </div>
         
-          <form onSubmit={handleSearch} className="mb-4">
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-              <div>
-                <label htmlFor="strategy" className="block text-sm font-medium text-gray-700 mb-1">
-                  Strategy
-                </label>
+          <div className="mb-4">
+            <div className="bg-gray-50 p-5 rounded-lg border border-gray-200 mb-6">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
                 <div className="relative">
-                  <select
-                    id="strategy"
-                    name="strategy"
-                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md"
-                    value={filters.strategy}
-                    onChange={handleFilterChange}
-                  >
-                    <option value="">Any Strategy</option>
-                    {strategies.map((strategy) => (
-                      <option key={strategy} value={strategy}>
-                        {strategy}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+                  <label htmlFor="strategy" className="block text-sm font-medium text-gray-700 mb-1">
+                    Strategy
+                  </label>
+                  <div className="relative rounded-md shadow-sm">
+                    <select
+                      id="strategy"
+                      name="strategy"
+                      className="block w-full pl-3 pr-10 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm rounded-md bg-white"
+                      value={filters.strategy}
+                      onChange={handleFilterChange}
+                    >
+                      <option value="">Any Strategy</option>
+                      {strategies.map((strategy) => (
+                        <option key={strategy} value={strategy}>
+                          {strategy}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
-              </div>
-              
-              <div>
-                <label htmlFor="minSize" className="block text-sm font-medium text-gray-700 mb-1">
-                  Min Size (in millions)
-                </label>
-                <input
-                  type="number"
-                  name="minSize"
-                  id="minSize"
-                  className="mt-1 focus:ring-primary focus:border-primary block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                  value={filters.minSize}
-                  onChange={handleFilterChange}
-                  min="0"
-                  placeholder="0"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="maxSize" className="block text-sm font-medium text-gray-700 mb-1">
-                  Max Size (in millions)
-                </label>
-                <input
-                  type="number"
-                  name="maxSize"
-                  id="maxSize"
-                  className="mt-1 focus:ring-primary focus:border-primary block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                  value={filters.maxSize}
-                  onChange={handleFilterChange}
-                  min="0"
-                  placeholder="No max"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="geography" className="block text-sm font-medium text-gray-700 mb-1">
-                  Geography
-                </label>
+                
                 <div className="relative">
-                  <select
-                    id="geography"
-                    name="geography"
-                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md"
-                    value={filters.geography}
-                    onChange={handleFilterChange}
-                  >
-                    <option value="">Any Geography</option>
-                    {geographies.map((geography) => (
-                      <option key={geography} value={geography}>
-                        {geography}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+                  <label htmlFor="minSize" className="block text-sm font-medium text-gray-700 mb-1">
+                    Min Size (in millions)
+                  </label>
+                  <div className="mt-1 relative rounded-md shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-500 sm:text-sm">$</span>
+                    </div>
+                    <input
+                      type="number"
+                      name="minSize"
+                      id="minSize"
+                      className="block w-full pl-7 pr-3 py-2.5 sm:text-sm border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary bg-white"
+                      value={filters.minSize}
+                      onChange={handleFilterChange}
+                      min="0"
+                      placeholder="0"
+                    />
                   </div>
                 </div>
-              </div>
-              
-              <div>
-                <label htmlFor="sector" className="block text-sm font-medium text-gray-700 mb-1">
-                  Sector
-                </label>
+                
                 <div className="relative">
-                  <select
-                    id="sector"
-                    name="sector"
-                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md"
-                    value={filters.sector}
-                    onChange={handleFilterChange}
-                  >
-                    <option value="">Any Sector</option>
-                    {sectors.map((sector) => (
-                      <option key={sector} value={sector}>
-                        {sector}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+                  <label htmlFor="maxSize" className="block text-sm font-medium text-gray-700 mb-1">
+                    Max Size (in millions)
+                  </label>
+                  <div className="mt-1 relative rounded-md shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="text-gray-500 sm:text-sm">$</span>
+                    </div>
+                    <input
+                      type="number"
+                      name="maxSize"
+                      id="maxSize"
+                      className="block w-full pl-7 pr-3 py-2.5 sm:text-sm border-gray-300 rounded-md focus:ring-2 focus:ring-primary focus:border-primary bg-white"
+                      value={filters.maxSize}
+                      onChange={handleFilterChange}
+                      min="0"
+                      placeholder="No max"
+                    />
+                  </div>
+                </div>
+                
+                <div className="relative">
+                  <label htmlFor="geography" className="block text-sm font-medium text-gray-700 mb-1">
+                    Geography
+                  </label>
+                  <div className="relative rounded-md shadow-sm">
+                    <select
+                      id="geography"
+                      name="geography"
+                      className="block w-full pl-3 pr-10 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm rounded-md bg-white"
+                      value={filters.geography}
+                      onChange={handleFilterChange}
+                    >
+                      <option value="">Any Geography</option>
+                      {geographies.map((geography) => (
+                        <option key={geography} value={geography}>
+                          {geography}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="relative">
+                  <label htmlFor="sector" className="block text-sm font-medium text-gray-700 mb-1">
+                    Sector
+                  </label>
+                  <div className="relative rounded-md shadow-sm">
+                    <select
+                      id="sector"
+                      name="sector"
+                      className="block w-full pl-3 pr-10 py-2.5 text-base border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm rounded-md bg-white"
+                      value={filters.sector}
+                      onChange={handleFilterChange}
+                    >
+                      <option value="">Any Sector</option>
+                      {sectors.map((sector) => (
+                        <option key={sector} value={sector}>
+                          {sector}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
             
-            <div className="mt-5 flex justify-between">
-              <div className="flex space-x-3">
-                <button
-                  type="submit"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                >
-                  <svg className="mr-1.5 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  Search
-                </button>
+            <div className="flex flex-col sm:flex-row justify-between gap-4">
+              <div className="flex flex-wrap gap-3">
                 <button
                   type="button"
                   onClick={handleClearFilters}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                  className="inline-flex items-center px-4 py-2.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
                 >
-                  <svg className="mr-1.5 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="mr-2 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                   Clear Filters
@@ -576,15 +577,15 @@ export default function InvestorFunds() {
               <button
                 type="button"
                 onClick={handleSaveSearch}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                className="inline-flex items-center px-4 py-2.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
               >
-                <svg className="mr-1.5 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="mr-2 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                 </svg>
-                Save Search
+                Save This Search
               </button>
             </div>
-          </form>
+          </div>
         </div>
           
         <div className="mt-6">

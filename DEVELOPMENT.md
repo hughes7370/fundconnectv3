@@ -74,7 +74,7 @@ The following features need to be implemented to complete the MVP:
 
 ### Document Management
 
-- [ ] Implement document previews
+- [X] Implement document previews
 
 ### General Improvements
 

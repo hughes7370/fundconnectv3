@@ -195,51 +195,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="flex flex-shrink-0 p-4 border-t border-primary-dark">
             <div className="group block w-full flex-shrink-0">
               <div className="flex items-center">
-                <div>
-                  <button
-                    onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                    className="focus:outline-none"
-                  >
-                    {renderAvatar()}
-                  </button>
-                  
-                  {isProfileDropdownOpen && (
-                    <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 z-50">
-                      <div className="px-4 py-2 text-xs text-gray-500 border-b border-gray-100">
-                        <div>{userName || 'User'}</div>
-                        <div className="capitalize">{userRole || 'loading...'}</div>
-                      </div>
-                      <Link
-                        href="/dashboard/profile"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        onClick={() => setIsProfileDropdownOpen(false)}
-                      >
-                        Your Profile
-                      </Link>
-                      <button
-                        onClick={() => {
-                          setIsProfileDropdownOpen(false);
-                          handleSignOut();
-                        }}
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        Sign out
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-white">{userName || 'User'}</p>
-                  <button
-                    onClick={handleSignOut}
-                    className="text-xs font-medium text-gray-light group-hover:text-white flex items-center mt-1"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    Sign out
-                  </button>
-                </div>
+                <button
+                  onClick={handleSignOut}
+                  className="text-sm font-medium text-white hover:text-gray-200 flex items-center"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Sign out
+                </button>
               </div>
             </div>
           </div>

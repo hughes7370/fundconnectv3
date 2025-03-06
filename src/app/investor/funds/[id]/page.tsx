@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import ContactAgentModal from '@/components/ContactAgentModal';
+import DocumentPreview from '@/components/DocumentPreview';
 import { supabase } from '@/utils/supabase';
 import React from 'react';
 
@@ -64,6 +65,7 @@ export default function FundDetailsPage() {
   const [hasExpressedInterest, setHasExpressedInterest] = useState(false);
   const [expressingInterest, setExpressingInterest] = useState(false);
   const [showAgentDetails, setShowAgentDetails] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<{url: string, type: string} | null>(null);
 
   useEffect(() => {
     // Only proceed if fundId is available
@@ -765,10 +767,75 @@ export default function FundDetailsPage() {
                               {document.document_type || 'Fund Document'}
                             </span>
                           </div>
-                          <div className="ml-4 flex-shrink-0">
+                          <div className="ml-4 flex-shrink-0 flex space-x-3">
+                            <button
+                              onClick={() => {
+                                // Ensure the file URL is properly formatted
+                                let fileUrl = document.file_url;
+                                
+                                // Remove any leading slashes
+                                fileUrl = fileUrl.replace(/^\/+/, '');
+                                
+                                // Remove 'fund_documents/' prefix if it exists
+                                // since the bucket name is already 'fund-documents'
+                                if (fileUrl.startsWith('fund_documents/')) {
+                                  fileUrl = fileUrl.replace(/^fund_documents\//, '');
+                                }
+                                
+                                // Log the file URL for debugging
+                                console.log('Opening document preview with URL:', fileUrl);
+                                
+                                setSelectedDocument({
+                                  url: fileUrl,
+                                  type: document.document_type || 'Fund Document'
+                                });
+                              }}
+                              className="font-medium text-primary hover:text-primary-dark"
+                            >
+                              Preview
+                            </button>
                             <a
                               href="#"
-                              className="font-medium text-primary hover:text-primary-dark"
+                              onClick={async (e) => {
+                                e.preventDefault();
+                                try {
+                                  // Ensure the file URL is properly formatted
+                                  let fileUrl = document.file_url;
+                                  
+                                  // Remove any leading slashes
+                                  fileUrl = fileUrl.replace(/^\/+/, '');
+                                  
+                                  // Remove 'fund_documents/' prefix if it exists
+                                  // since the bucket name is already 'fund-documents'
+                                  if (fileUrl.startsWith('fund_documents/')) {
+                                    fileUrl = fileUrl.replace(/^fund_documents\//, '');
+                                  }
+                                  
+                                  // Log the file URL for debugging
+                                  console.log('Downloading document with URL:', fileUrl);
+                                  
+                                  const { data, error } = await supabase.storage
+                                    .from('fund-documents')
+                                    .createSignedUrl(fileUrl, 3600);
+                                    
+                                  if (error) {
+                                    console.error('Download error:', error);
+                                    throw error;
+                                  }
+                                  
+                                  // Create a temporary anchor element to trigger download
+                                  const a = window.document.createElement('a');
+                                  a.href = data.signedUrl;
+                                  a.download = document.document_type || 'fund_document';
+                                  window.document.body.appendChild(a);
+                                  a.click();
+                                  window.document.body.removeChild(a);
+                                } catch (err) {
+                                  console.error('Download error:', err);
+                                  alert('Failed to download document: ' + (err instanceof Error ? err.message : 'Unknown error'));
+                                }
+                              }}
+                              className="font-medium text-gray-600 hover:text-gray-800"
                             >
                               Download
                             </a>
@@ -969,6 +1036,14 @@ export default function FundDetailsPage() {
           {loading ? renderLoading() : error ? renderError() : renderFund()}
         </div>
       </div>
+      
+      {selectedDocument && (
+        <DocumentPreview
+          documentUrl={selectedDocument.url}
+          documentType={selectedDocument.type}
+          onClose={() => setSelectedDocument(null)}
+        />
+      )}
     </DashboardLayout>
   );
 } 
