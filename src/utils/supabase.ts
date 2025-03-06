@@ -13,27 +13,51 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
     storage: {
       getItem: (key) => {
         if (typeof document === 'undefined') {
+          console.log('getItem: Document is undefined (server-side)');
           return null;
         }
         
-        const value = document.cookie
-          .split('; ')
-          .find((row) => row.startsWith(`${key}=`))
-          ?.split('=')[1];
-          
-        return value ? value : null;
+        try {
+          const value = document.cookie
+            .split('; ')
+            .find((row) => row.startsWith(`${key}=`))
+            ?.split('=')[1];
+            
+          console.log(`getItem: Retrieved ${key} from cookies:`, value ? 'found' : 'not found');
+          return value ? decodeURIComponent(value) : null;
+        } catch (error) {
+          console.error('Error getting cookie:', error);
+          return null;
+        }
       },
       setItem: (key, value) => {
         if (typeof document !== 'undefined') {
-          document.cookie = `${key}=${value}; path=/; max-age=2592000`; // 30 days
+          try {
+            const encodedValue = encodeURIComponent(value);
+            document.cookie = `${key}=${encodedValue}; path=/; max-age=2592000; SameSite=Lax`; // 30 days
+            console.log(`setItem: Set ${key} in cookies`);
+          } catch (error) {
+            console.error('Error setting cookie:', error);
+          }
+        } else {
+          console.log('setItem: Document is undefined (server-side)');
         }
       },
       removeItem: (key) => {
         if (typeof document !== 'undefined') {
-          document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+          try {
+            document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+            console.log(`removeItem: Removed ${key} from cookies`);
+          } catch (error) {
+            console.error('Error removing cookie:', error);
+          }
+        } else {
+          console.log('removeItem: Document is undefined (server-side)');
         }
       },
     },

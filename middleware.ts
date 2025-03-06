@@ -5,11 +5,18 @@ import type { NextRequest } from 'next/server';
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
   
-  // Create a Supabase client
-  const supabase = createMiddlewareClient({ req, res });
-  
-  // Refresh session if expired
-  await supabase.auth.getSession();
+  try {
+    // Create a Supabase client
+    const supabase = createMiddlewareClient({ req, res });
+    
+    // Refresh session if expired
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    // Log session status (for debugging)
+    console.log('Middleware session check:', session ? 'Session exists' : 'No session');
+  } catch (error) {
+    console.error('Middleware error:', error);
+  }
   
   return res;
 }
@@ -17,6 +24,6 @@ export async function middleware(req: NextRequest) {
 // Specify which routes this middleware applies to
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/auth).*)',
   ],
 }; 

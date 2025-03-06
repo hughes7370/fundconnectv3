@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/utils/supabase';
@@ -12,6 +12,20 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      console.log('Current session:', data);
+      if (data.session) {
+        console.log('User already logged in, redirecting to dashboard');
+        router.push('/dashboard');
+      }
+    };
+    
+    checkSession();
+  }, [router]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Login form submitted');
@@ -21,6 +35,9 @@ export default function Login() {
     try {
       console.log('Attempting to sign in with:', { email });
       
+      // Clear any existing sessions first to avoid conflicts
+      await supabase.auth.signOut();
+      
       // Try to sign in with password
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -31,51 +48,17 @@ export default function Login() {
 
       if (error) throw error;
 
-      console.log('Login successful, redirecting to dashboard');
+      // Verify the session was created
+      const { data: sessionData } = await supabase.auth.getSession();
+      console.log('Session after login:', sessionData);
       
-      // Try to use Next.js router first
-      try {
-        router.push('/dashboard');
-        router.refresh(); // Force a refresh of the page
-      } catch (routerError) {
-        console.error('Router error:', routerError);
-        // Fallback to window.location if router fails
-        window.location.href = '/dashboard';
+      if (!sessionData.session) {
+        throw new Error('Failed to create session. Please try again.');
       }
-    } catch (error: any) {
-      console.error('Login error:', error);
-      
-      // Special handling for storage access errors
-      if (error.message && error.message.includes('storage')) {
-        setError('Browser storage access error. Please ensure cookies are enabled and try again. If using private browsing, try regular mode.');
-      } else {
-        setError(error.message || 'An error occurred during login');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  // Add a direct login function for testing
-  const handleDirectLogin = async () => {
-    console.log('Direct login button clicked');
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Try to sign in with password
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      console.log('Auth response:', { data, error });
-      
-      if (error) throw error;
-      
       console.log('Login successful, redirecting to dashboard');
       
-      // Use direct window location change
+      // Use window.location for more reliable redirect
       window.location.href = '/dashboard';
     } catch (error: any) {
       console.error('Login error:', error);
@@ -177,24 +160,11 @@ export default function Login() {
               type="submit"
               disabled={loading}
               className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              onClick={() => console.log('Submit button clicked')}
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
         </form>
-        
-        {/* Add a direct login button for testing */}
-        <div className="mt-4">
-          <button
-            type="button"
-            onClick={handleDirectLogin}
-            disabled={loading}
-            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-          >
-            {loading ? 'Processing...' : 'Alternative Sign In Button'}
-          </button>
-        </div>
         
         <div className="mt-6">
           <div className="relative">
@@ -212,6 +182,7 @@ export default function Login() {
             <button
               type="button"
               className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+              onClick={() => setError('Magic link login is not implemented yet.')}
             >
               <span>Magic Link (Email)</span>
             </button>
